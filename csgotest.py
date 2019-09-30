@@ -5,7 +5,6 @@ from sklearn.metrics import roc_curve
 from pydoc import locate
 import commentjson
 from termcolor import colored
-import models
 import os
 import random
 import glob
@@ -18,6 +17,10 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+import data_loader
+import preprocess
+import models
+
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -28,12 +31,12 @@ import matplotlib.animation as animation
 # in case it is called from a different location
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
-
+'''
 class CounterStrikeDatasetSimple(Dataset):
     def __init__(self, filePath):
         print('read that thing')
         self.df = pd.read_csv(filePath, sep=',', na_values='-')
-        self.df = self.df.fillna(0)
+        self.df.fillna(0, inplace=True)
 
     def __getitem__(self, index):
 
@@ -42,26 +45,54 @@ class CounterStrikeDatasetSimple(Dataset):
 
     def __len__(self):
         return self.df.index.size
+'''
 
 
 class CounterStrikeDataset(Dataset):
-    def __init__(self, filePath, batch_size=1, epoch_size=1, input_features=163):
-        print('read that thing')
-        self.data = pd.read_csv(filePath, sep=',', na_values='-')
-        self.data = self.data.fillna(0)
+    def __init__(self, files, batch_size=64, epoch_size=50000, num_players=10):
+        self.batch_size = batch_size
+        self.epoch_size = epoch_size
 
-        self.labels = self.data
+        self.num_players = num_players
+
+        print('Initalize Dataset')
+        df = pd.read_csv(
+            files[0], sep=',', na_values='-').astype(np.float32)
+
+        df.set_index('Tick', inplace=True)
+        # TODO Don't drop if still relevant
+        df.drop(columns=['Round'], inplace=True)
+        df.fillna(0.0, inplace=True)
+
+        df = preprocess.add_death_in_seconds_labels(df)
+        data, self.labels = data_loader.get_minibatch_simple(
+            df)  # TODO Proper data loading
+
+        self.num_features = len(data.columns)
+
+        # Extract features of each player
+        self.data = []
+        for player_i in range(num_players):
+            # Filter all feature columns, without classification labels
+            player_i_data = data.filter(like=f'f_{player_i}_')
+            self.data.append(player_i_data)
 
     def __getitem__(self, index):
 
-        minibatch = self.data.iloc[index]
-        player_labels = torch.rand(1, 10)
+        chosen_player_features = []  # Array of arrays for minibatch
+
+        for player_i in range(self.num_players):
+            chosen_player_features.append(
+                self.data[player_i].iloc[index:index+self.batch_size].to_numpy())
+
+        player_labels = self.labels.iloc[index:index +
+                                         self.batch_size].to_numpy()
         player_i = random.randrange(0, 10)
 
-        return minibatch.values, player_labels, player_i
+        return chosen_player_features, player_labels, player_i
 
     def __len__(self):
-        return self.data.index.size
+        return self.data[0].index.size
 
 
 def train_csgo():
@@ -75,18 +106,15 @@ def train_csgo():
     # the dataset returns a batch when called (because we get the whole batch from one file), the batch size of the data loader thus is set to 1 (default)
     # epoch size is how many elements the iterator of the generator will provide, NOTE should not be too small, because it have a significant overhead p=0.05
     training_set = CounterStrikeDataset(
-        (str(Path.cwd() / 'parsed_files' / 'positions.csv')))
+        [(str(Path.cwd() / 'parsed_files' / 'positions.csv'))])
     training_generator = torch.utils.data.DataLoader(
         training_set, shuffle=True)
 
-    print(training_set.data.iloc[200])
-    print(str(training_set.data.index.size))
+    print(training_set.data[0].iloc[200])
+    print(str(training_set.data[0].index.size))
 
-    input_feature_size = 162
-
-    #model = models.SimpleFF(input_feature_size, 10)
     model = models.SharedWeightsCSGO(
-        num_features_per_player=input_feature_size/10)
+        num_player_features=training_set.num_features, num_labels=10)
 
     model.to(device)
 
@@ -122,14 +150,13 @@ def train_csgo():
         epoch_per_sec_accuracies = [[] for _ in range(20)]
         epoch_per_sec_predictions = [[] for _ in range(20)]
 
-        for sub_epoch_i, (X, y, player_i) in enumerate(training_generator):
+        for batch_i, (X, y, player_i) in enumerate(training_generator):
             # since we get a batch of size 1 of batch of real batch size, we take the 0th element
-            '''X = [(hero_X[0, :]).to(device) for hero_X in X]
 
-            death_times = death_times[0]
+            #death_times = death_times[0]
 
-            '''
-
+            # training_generator adds one dimension to each tensor
+            X = [(hero_X[0, :]).to(device) for hero_X in X]
             y = (y[0, :]).to(device)
             player_i = player_i[0].to(device)
 
@@ -192,8 +219,8 @@ def train_csgo():
                     output_np[mask_die_in_timeslot].reshape(-1))
                 '''
 
-            if sub_epoch_i > 0 and (sub_epoch_i % 50) == 0:
-                print(epoch_i, " ", sub_epoch_i, " loss: ", np.array(
+            if batch_i > 0 and (batch_i % 50) == 0:
+                print(epoch_i, " ", batch_i, " loss: ", np.array(
                     epoch_overall_loss[-49:]).mean(), " accuracy: ", np.array(epoch_target_accuracy[-49:]).mean())
                 # for timeslot_i in range(19):
                 #    print("epoch_per_sec_predictions  ",len(epoch_per_sec_predictions[timeslot_i]))

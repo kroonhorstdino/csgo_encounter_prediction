@@ -16,52 +16,61 @@ def preprocess(filePath):
     pass
 
 
-def add_death_in_seconds_labels(df, max_time_to_next_death=5):
+def add_death_in_seconds_labels(df, max_time_to_next_death=5, demo_tickrate=128, tickrate_per_second=8):
     """
     Adds labels that contain time to next death within x next seconds to the dataframe
 
     Assumes tick rate is 8 per second for all dataframes
-
-    Moved into parsing
     """
 
-    # TODO Tickrate
-    tickrate_per_second = 8
-    max_ticks_in_future = tickrate_per_second * max_time_to_next_death
+    print("Adding life state labels for " +
+          str(max_time_to_next_death) + " seconds to dataframe...")
+
+    # How many rows in the future have to be considered for labeling
+    max_rows_in_future = tickrate_per_second * max_time_to_next_death
+    # Max time at which to label if someone is going to die in the next x seconds
+    max_ticks_in_future = demo_tickrate * max_time_to_next_death
 
     isAlive_colum_names = data_loader.get_isAlive_column_names(10)
-
-    column_names_with_ticks = ["Tick"]
-    column_names_with_ticks.extend(isAlive_colum_names)
-
-    # Get all rows about life state of players including ticks
-    isAlive_columns = df[column_names_with_ticks]
-    last_row = isAlive_columns.iloc[0]
+    isAlive_columns = df[isAlive_colum_names]
 
     # Contains the columns that hold labels for death within x next seconds
     # 0: not dead 1: is dead
-    deathState_column_lists = []
+    label_deathState_column_lists = [[] for i in range(10)]
 
     # Go through each player and set deathState labels for entire column
+    # TODO Only set deathState for when player is alive. For performance reason?. Maybe unnecessary
     for player_i, player_isAlive_column_name in enumerate(isAlive_colum_names):
         # Get isAlive column for player
-        isAlive_column = isAlive_columns[["Tick", player_isAlive_column_name]]
-        deathState_column_list = np.full(isAlive_columns.index.size, 0.0)
+        isAlive_column = isAlive_columns[[player_isAlive_column_name]]
+        isAlive_column = isAlive_column[isAlive_column[player_isAlive_column_name] == 0]
 
-        for index, lifeState_row in isAlive_column.iterrows():
-            past_tick = (lifeState_row['Tick'] - max_ticks_in_future)
+        # Remove rows if they are not far enough in the future, meaning they are less than x seconds in the future from the first tick of the first round
+        # TODO Ticks begin at warmup, so may never be used
+        if df.index[0] > (isAlive_column.index[0] - max_ticks_in_future):
+            isAlive_column = isAlive_column[max_rows_in_future:]
+            # Only get rows where a player is dead
+        label_deathState_column_list = np.full(df.index.size, 0)
 
-            if (past_tick >= 0 & & isAlive_columns[index]):
-                deathState_column_list[index] = row[player_isAlive_column_name][0]
+        # Go through all rows of this player.
+        # TODO Use death times in the future
+        for currentTick, deathState_row in isAlive_column.iterrows():  # TODO deathState_row wird nicht benutzt
+            past_tick = (currentTick - max_ticks_in_future)
 
-    deathState_column_lists[player_i] = deathState_column_list
+            if past_tick in df.index:
+                label_deathState_column_list[df.index.get_loc(
+                    past_tick)] = 1  # Player is going to die in the next x seconds at this tick
+
+        label_deathState_column_lists[player_i] = label_deathState_column_list
 
     # Add deathState lists into df as columns for each player
-    for player_i, deathState_column_list in enumerate(deathState_column_lists):
+    for player_i, label_deathState_column_list in enumerate(label_deathState_column_lists):
         # TODO
-        new_column_name = f'{player_i}_deathState_in_{max_time_to_next_death}_seconds'
+        new_column_name = f'l_{player_i}_DeathState_in_{max_time_to_next_death}_seconds'
 
-        df[new_column_name] = deathState_column_list
+        df[new_column_name] = label_deathState_column_list.astype(np.float32)
+
+    # print(df.head(20))
 
     return df
 

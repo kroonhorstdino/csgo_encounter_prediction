@@ -1,23 +1,39 @@
 const fs = require("fs");
 const demofile = require("demofile");
+const path = require("path");
 
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
 //For writing to file that contains deaths
 const writerToDeaths = createCsvWriter({
-  path: 'death.csv',
-  header: [
-    {id: 'round', title: 'Round'},
-    {id: 'tick', title: 'Tick'},
-    {id: 'victim', title: 'Victim'},
-    {id: 'victimPosition', title: 'VictimPosition'},
-    {id: 'attacker', title: 'Attacker'},
-    {id: 'attackerPosition', title: 'AttackerPosition'},
-  ]
+    path: 'death.csv',
+    header: [{
+            id: 'round',
+            title: 'Round'
+        },
+        {
+            id: 'tick',
+            title: 'Tick'
+        },
+        {
+            id: 'victim',
+            title: 'Victim'
+        },
+        {
+            id: 'victimPosition',
+            title: 'VictimPosition'
+        },
+        {
+            id: 'attacker',
+            title: 'Attacker'
+        },
+        {
+            id: 'attackerPosition',
+            title: 'AttackerPosition'
+        },
+    ]
 });
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 let writerObject = {
     path: 'parsed_files\\positions.csv'
 };
@@ -52,32 +68,47 @@ const playerFeatures = [
     //Relative distance to all other players (1-9)
     {
         id: 'distanceToAlly_1',
-        title: 'DistanceTo1'
+        title: 'DistanceToAlly_1'
     }, {
         id: 'distanceToAlly_2',
-        title: 'DistanceTo2'
+        title: 'DistanceToAlly_2'
     }, {
         id: 'distanceToAlly_3',
-        title: 'DistanceTo3'
+        title: 'DistanceToAlly_3'
     }, {
         id: 'distanceToAlly_4',
-        title: 'DistanceTo9'
+        title: 'DistanceToAlly_4'
     }, {
         id: 'distanceToEnemy_0',
-        title: 'DistanceTo_4'
+        title: 'DistanceToEnemy_1'
     }, {
         id: 'distanceToEnemy_1',
-        title: 'DistanceTo_5'
+        title: 'DistanceToEnemy_1'
     }, {
         id: 'distanceToEnemy_2',
-        title: 'DistanceTo_6'
+        title: 'DistanceToEnemy_2'
     }, {
         id: 'distanceToEnemy_3',
-        title: 'DistanceTo_7'
+        title: 'DistanceToEnemy_3'
     }, {
         id: 'distanceToEnemy_4',
-        title: 'DistanceTo_8'
+        title: 'DistanceToEnemy_4'
     },
+    //Health, etc.
+    {
+        id: 'health',
+        title: 'Health'
+    }, {
+        id: 'isScoped',
+        title: 'IsScoped'
+    }, {
+        id: 'isDefusing',
+        title: 'IsDefusing'
+    },
+    /*{
+           id: '',
+           title:
+       }*/
 ]
 
 let allFeatures = [{
@@ -90,16 +121,17 @@ let allFeatures = [{
     }
 ]
 
-//Create features for each player
+
 for (const feature of playerFeatures) {
     for (let i = 0; i < 10; i++) {
-        let newId = `${i}_${feature.id}`;
-        let newTitle = `${i}_${feature.id}`;
+        let newId = `f_${i}_${feature.id}`;
+        let newTitle = `f_${i}_${feature.title}`;
 
         allFeatures.push({
             id: newId,
             title: newTitle
         });
+
     }
 }
 
@@ -122,6 +154,8 @@ class DemoFileParser {
     }
 
     parseDemoFile(pathToFile) {
+        this.startTime = Date.now();
+
         this.currentDemoFilePath = pathToFile;
         this.currentDemoFileName = path.basename(pathToFile);
         let buffer = null;
@@ -186,6 +220,8 @@ class DemoFileParser {
         this.demoFile.on("end", e => {
             this.on_round_officially_ended();
             console.log(`Parsing of demo ${this.currentDemoFileName} is complete`);
+            let millis = Date.now() - this.start;
+            console.log("seconds elapsed = " + Math.floor(millis / 1000));
         });
 
         //Get player info at each relevant tick
@@ -212,7 +248,7 @@ class DemoFileParser {
         /** 
          * Get player positions each tick
          */
-        this.getAllPlayerInfo();
+        this.getAllPlayerInfoForTick();
     }
 
     /**
@@ -230,13 +266,14 @@ class DemoFileParser {
      *
      * @memberof DemoFileParser
      */
-    getAllPlayerInfo() {
+    getAllPlayerInfoForTick() {
 
         //Terrorist
         let t = this.demoFile.teams[2];
         //Counter-Terrorist
         let ct = this.demoFile.teams[3];
 
+        //If anything is wrong with the teams
         if (t == undefined || ct == undefined) return;
 
         let allPlayers = [].concat(t.members, ct.members);
@@ -248,21 +285,17 @@ class DemoFileParser {
             return
         }
 
-        //Player counter for later loop
-        let playerCounter = 0;
-
         //Info from current tick for all players
-        let info = {
+        let tickInfo = {
             tick: currentTick
         };
 
+        //Player counter for later loop
+        let playerCounter = 0;
         //Go through all players
         for (const player of allPlayers) {
 
-            if (player == null) {
-                playerCounter++;
-                continue;
-            }
+            const featureNameStart = `f_${playerCounter}`
 
             const playerID = player ? player.userId : "-1";
             const playerName = player ? player.name : "playerMissing";
@@ -270,80 +303,62 @@ class DemoFileParser {
 
             let position = player.position;
 
-            info[playerCounter + "_playerID"] = playerID;
-            //info[playerCounter + "_playerName"] = playerName;
-            info[playerCounter + "_isAlive"] = player.isAlive ? 1 : 0;
-            info[playerCounter + "_positionX"] = position.x;
-            info[playerCounter + "_positionY"] = position.y;
-            info[playerCounter + "_positionZ"] = position.z;
-            info[playerCounter + "_velocityX"] = player.velocity.x;
-            info[playerCounter + "_velocityY"] = player.velocity.y;
-            info[playerCounter + "_velocityZ"] = player.velocity.z;
+            tickInfo[featureNameStart + "_playerID"] = playerID; //TODO Not used as inuput
 
-            //Distance to other allies (index beings at 1, 0 is the current player)
-            let i = 0;
+            tickInfo[featureNameStart + "_isAlive"] = player.isAlive ? 1 : 0;
 
-            for (const otherPlayer of t.members) {
+            tickInfo[featureNameStart + "_positionX"] = position.x;
+            tickInfo[featureNameStart + "_positionY"] = position.y;
+            tickInfo[featureNameStart + "_positionZ"] = position.z;
 
-                if (otherPlayer == null) {
-                    i++;
-                    continue;
-                }
+            tickInfo[featureNameStart + "_velocityX"] = player.velocity.x;
+            tickInfo[featureNameStart + "_velocityY"] = player.velocity.y;
+            tickInfo[featureNameStart + "_velocityZ"] = player.velocity.z;
 
-                //If this is the same player
+            //Health, Armor, etc.
+            tickInfo[featureNameStart + "_health"] = player.health;
+
+            //Tactical information
+            tickInfo[featureNameStart + "_isSpotted"] = player.isSpotted ? 1 : 0;
+            tickInfo[featureNameStart + "_isScoped"] = player.isScoped ? 1 : 0;
+            tickInfo[featureNameStart + "_isDefusing"] = player.isDefusing ? 1 : 0;
+
+            let allyCounter = 1; //The player itself has index 0.
+            let enemyCounter = 0;
+
+            //Distance to other players (Index begins at 1 for allies, 0 for enemies)
+            for (const otherPlayer of allPlayers) {
+
+                //Don't measure distance to yourself!
                 if (otherPlayer.userId == player.userId) {
-                    i++;
                     continue;
                 };
 
-                let distance = this.calcVectorDistance(player.position, otherPlayer.position);
+                //Calc distance to other player
+                let distanceToOther = this.calcVectorDistance(player.position, otherPlayer.position);
 
-                //If in enemy team
-                if (player.teamNumber != otherPlayer.teamNumber) {
-                    info[playerCounter + "_distanceToEnemy_".concat(i)] = distance;
+                //Other player is in ally team
+                if (player.teamNumber == otherPlayer.teamNumber) {
+                    tickInfo[`${featureNameStart}_distanceToAlly_${allyCounter}`] = distanceToOther;
+                    allyCounter++;
                 }
-                //If on allied team (Ally0 is player itself)
+                //Other player on enemy team (Ally_0 is player itself)
                 else {
-                    info[playerCounter + "_distanceToAlly_".concat(i + 1)] = distance;
+                    tickInfo[`${featureNameStart}_distanceToEnemy_${enemyCounter}`] = distanceToOther;
+                    enemyCounter++;
                 }
-
-                i++;
-            }
-
-            i = 0;
-
-            //Distance to other allies (index beings at 1, 0 is the current player)
-            for (const otherPlayer of ct.members) {
-
-                if (otherPlayer == null) {
-                    i++;
-                    continue;
-                }
-
-                //If this is the same player
-                if (otherPlayer.userId == player.userId) {
-                    i++;
-                    continue;
-                };
-
-                let distance = this.calcVectorDistance(player.position, otherPlayer.position);
-
-                //If in enemy team
-                if (player.teamNumber != otherPlayer.teamNumber) {
-                    info[playerCounter + "_distanceToEnemy_".concat(i)] = distance;
-                }
-                //If on allied team (Ally0 is player itself)
-                else {
-                    info[playerCounter + "_distanceToAlly_".concat(i + 1)] = distance;
-                }
-
-                i++;
             }
 
             playerCounter++;
         }
 
-        this.playerInfoBuffer = this.playerInfoBuffer.concat(info);
+        //Check if anything went wrong
+        if (Object.values(tickInfo).includes(null) || Object.values(tickInfo).includes(NaN)) {
+            console.log("Current Tick " + currentTick + " | Something went wrong, discarding this tick!")
+            return
+        } else {
+            this.playerInfoBuffer = this.playerInfoBuffer.concat(tickInfo);
+        }
     }
 
     /**
@@ -356,6 +371,7 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     calcVectorDistance(vecA, vecB, useTaxicab = true) {
+        //TODO Use pythagoras!
         if (useTaxicab) {
             let dX = Math.abs(vecA.x - vecB.x);
             let dY = Math.abs(vecA.y - vecB.y);
@@ -392,8 +408,8 @@ class DemoFileParser {
     on_round_officially_ended() {
         const teams = this.demoFile.teams;
 
-        const terrorists = teams[2];
-        const cts = teams[3];
+        //const terrorists = teams[2];
+        //const cts = teams[3];
 
         const finishedRound = this.demoFile.gameRules.roundsPlayed;
 
@@ -417,210 +433,17 @@ class DemoFileParser {
         writerToDeaths
             .writeRecords(this.deathDataBuffer);
         console.log(">> Data of last Round written to CSV");
-=======
-=======
->>>>>>> parent of 8abee5b... Update
-//For writing to file that contains positions
-const writerToPositions = createCsvWriter({
-  path: 'positions.csv',
-  header: [
-    {id: 'round', title: 'Round'},
-    {id: 'tick', title: 'Tick'},
-    {id: 'player', title: 'Player'},
-    {id: 'playerPosition', title: 'PlayerPosition'},
-	{id: 'velocity', title: 'Velocity'},
-  ]
-});
-<<<<<<< HEAD
->>>>>>> parent of 8abee5b... Update
 
+        this.playerInfoBuffer.length = 0
+        this.deathDataBuffer.length = 0
+    }
+}
 
-fs.readFile("2093_fnatic-virtus-pro_de_cbble.dem", (err, buffer) => {
-  const demoFile = new demofile.DemoFile();
-  
-  let deathData = [];
-  let positionData = [];
-  
-  demoFile.gameEvents.on("player_footstep", s => {
-	const player = demoFile.entities.getByUserId(s.userid);
-	const playerName = player ? player.name : "unnamed";
-	
-	positionData.push(
-		{
-			tick: demoFile.currentTick,
-			player: playerName,
-			playerPosition: vectorToString(player.position),
-			velocity: vectorToString(player.velocity)
-		}
-	);	
-  });
-
-  demoFile.gameEvents.on("round_officially_ended", e => {
-    const teams = demoFile.teams;
-
-    const terrorists = teams[2];
-    const cts = teams[3];
-	
-	const finishedRound = demoFile.gameRules.roundsPlayed;  
-	
-	console.log(`ROUND >>${finishedRound}<< HAS ENDED!`);
-	
-	deathData.forEach((kill) => {
-		kill.round = finishedRound;
-	})
-	
-	positionData.forEach((pos) => {
-		pos.round = finishedRound;
-	})
-	
-   writerToPositions
-	.writeRecords(positionData)
-	
-   writerToDeaths
-	.writeRecords(deathData)
-	.then(() => console.log(">> Data of last Round written to CSV"));
-	
-   deathData.length = 0;
-   positionData.length = 0;
-
-    console.log(
-      "\tTerrorists: %s score %d\n\tCTs: %s score %d",
-      terrorists.clanName,
-      terrorists.score,
-      cts.clanName,
-      cts.score
-    );
-  });
-
-  demoFile.gameEvents.on("player_death", e => {
-
-    const victim = demoFile.entities.getByUserId(e.userid);
-    const victimName = victim ? victim.name : "unnamed";
-
-    // Attacker may have disconnected so be aware.
-    // e.g. attacker could have thrown a grenade, disconnected, then that grenade
-    // killed another player.
-    const attacker = demoFile.entities.getByUserId(e.attacker);
-    const attackerName = attacker ? attacker.name : "unnamed";
-
-    const headshotText = e.headshot ? " HS" : "";
-
-	deathData.push(
-		{
-			tick: demoFile.currentTick,
-			victim: victimName,
-			victimPosition: vectorToString(victim.position),
-			attacker: attackerName,
-			attackerPosition: vectorToString(attacker.position)
-
-		}
-	);
-
-    console.log(`||${demoFile.currentTick}|| ${attackerName} [${e.weapon}${headshotText}] ${victimName}`);
-  });
-
-  //console.log(demoFile);
-
-  demoFile.parse(buffer);
-});
-
-=======
-
-
-fs.readFile("2093_fnatic-virtus-pro_de_cbble.dem", (err, buffer) => {
-  const demoFile = new demofile.DemoFile();
-  
-  let deathData = [];
-  let positionData = [];
-  
-  demoFile.gameEvents.on("player_footstep", s => {
-	const player = demoFile.entities.getByUserId(s.userid);
-	const playerName = player ? player.name : "unnamed";
-	
-	positionData.push(
-		{
-			tick: demoFile.currentTick,
-			player: playerName,
-			playerPosition: vectorToString(player.position),
-			velocity: vectorToString(player.velocity)
-		}
-	);	
-  });
-
-  demoFile.gameEvents.on("round_officially_ended", e => {
-    const teams = demoFile.teams;
-
-    const terrorists = teams[2];
-    const cts = teams[3];
-	
-	const finishedRound = demoFile.gameRules.roundsPlayed;  
-	
-	console.log(`ROUND >>${finishedRound}<< HAS ENDED!`);
-	
-	deathData.forEach((kill) => {
-		kill.round = finishedRound;
-	})
-	
-	positionData.forEach((pos) => {
-		pos.round = finishedRound;
-	})
-	
-   writerToPositions
-	.writeRecords(positionData)
-	
-   writerToDeaths
-	.writeRecords(deathData)
-	.then(() => console.log(">> Data of last Round written to CSV"));
-	
-   deathData.length = 0;
-   positionData.length = 0;
-
-    console.log(
-      "\tTerrorists: %s score %d\n\tCTs: %s score %d",
-      terrorists.clanName,
-      terrorists.score,
-      cts.clanName,
-      cts.score
-    );
-  });
-
-  demoFile.gameEvents.on("player_death", e => {
-
-    const victim = demoFile.entities.getByUserId(e.userid);
-    const victimName = victim ? victim.name : "unnamed";
-
-    // Attacker may have disconnected so be aware.
-    // e.g. attacker could have thrown a grenade, disconnected, then that grenade
-    // killed another player.
-    const attacker = demoFile.entities.getByUserId(e.attacker);
-    const attackerName = attacker ? attacker.name : "unnamed";
-
-    const headshotText = e.headshot ? " HS" : "";
-
-	deathData.push(
-		{
-			tick: demoFile.currentTick,
-			victim: victimName,
-			victimPosition: vectorToString(victim.position),
-			attacker: attackerName,
-			attackerPosition: vectorToString(attacker.position)
-
-		}
-	);
-
-    console.log(`||${demoFile.currentTick}|| ${attackerName} [${e.weapon}${headshotText}] ${victimName}`);
-  });
-
-  //console.log(demoFile);
-
-  demoFile.parse(buffer);
-});
-
->>>>>>> parent of 8abee5b... Update
-const vectorToString = (vector) => {
-	const x = vector.x;
-	const y = vector.y;
-	const z = vector.z;
-
-	return `"${x},${y},${z}"`
-};
+const demo = new DemoFileParser();
+try {
+    fs.unlinkSync('parsed_files\\positions.csv')
+    console.log("Deleted old file!")
+} catch (e) {
+    console.log("Do nothing!")
+}
+demo.parseDemoFile(path.resolve('vitality-vs-liquid-m2-dust2.dem'))
