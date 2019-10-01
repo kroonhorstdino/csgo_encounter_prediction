@@ -49,47 +49,29 @@ class CounterStrikeDatasetSimple(Dataset):
 
 
 class CounterStrikeDataset(Dataset):
-    def __init__(self, files, batch_size=64, epoch_size=50000, num_players=10):
+    def __init__(self, files, batch_size=64, epoch_size=50000, num_players=10, death_time_window=5):
         self.batch_size = batch_size
         self.epoch_size = epoch_size
 
         self.num_players = num_players
 
+		self.death_time_window = death_time_window
+
         print('Initalize Dataset')
-        df = pd.read_csv(
-            files[0], sep=',', na_values='-').astype(np.float32)
+		df = preprocess.load_file_as_df(files[0])
 
-        df.set_index('Tick', inplace=True)
-        # TODO Don't drop if still relevant
-        df.drop(columns=['Round'], inplace=True)
-        df.fillna(0.0, inplace=True)
+		self.num_features = len(self.data.columns)
 
-        df = preprocess.add_death_in_seconds_labels(df)
-        data, self.labels = data_loader.get_minibatch_simple(
-            df)  # TODO Proper data loading
-
-        self.num_features = len(data.columns)
-
-        # Extract features of each player
-        self.data = []
-        for player_i in range(num_players):
-            # Filter all feature columns, without classification labels
-            player_i_data = data.filter(like=f'f_{player_i}_')
-            self.data.append(player_i_data)
+		#Add classification labels to Dataset
+		#WIP
+        self.data = preprocess.add_death_in_seconds_labels(df)
 
     def __getitem__(self, index):
 
-        chosen_player_features = []  # Array of arrays for minibatch
-
-        for player_i in range(self.num_players):
-            chosen_player_features.append(
-                self.data[player_i].iloc[index:index+self.batch_size].to_numpy())
-
-        player_labels = self.labels.iloc[index:index +
-                                         self.batch_size].to_numpy()
-        player_i = random.randrange(0, 10)
-
-        return chosen_player_features, player_labels, player_i
+		player_i = random.randrange(0, 10)
+		player_features, classification_labels = data_loader.get_minibatch_balanced_player(self.data,player_i,batch_size=self.batch_size)
+		
+		return player_features, classification_labels, player_i
 
     def __len__(self):
         return self.data[0].index.size

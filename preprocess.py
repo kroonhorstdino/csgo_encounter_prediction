@@ -13,8 +13,6 @@ from torch.utils.data.dataset import Dataset
 
 
 def preprocess(filePath):
-    pass
-
 
 def add_death_in_seconds_labels(df, max_time_to_next_death=5, demo_tickrate=128, tickrate_per_second=8):
     """
@@ -52,14 +50,13 @@ def add_death_in_seconds_labels(df, max_time_to_next_death=5, demo_tickrate=128,
             # Only get rows where a player is dead
         label_deathState_column_list = np.full(df.index.size, 0)
 
-        # Go through all rows of this player.
+        # Go through all rows of this player. Will not set states at end of rounds or at end of segments with discarded ticks, because not future data is available
         # TODO Use death times in the future
         for currentTick, deathState_row in isAlive_column.iterrows():  # TODO deathState_row wird nicht benutzt
             past_tick = (currentTick - max_ticks_in_future)
 
-            if past_tick in df.index:
-                label_deathState_column_list[df.index.get_loc(
-                    past_tick)] = 1  # Player is going to die in the next x seconds at this tick
+            if past_tick in df.index: #Past tick may have been discarded during parsing
+				label_deathState_column_list[df.index.get_loc(past_tick)] = 1  # Player is going to die in the next x seconds at this tick
 
         label_deathState_column_lists[player_i] = label_deathState_column_list
 
@@ -74,13 +71,38 @@ def add_death_in_seconds_labels(df, max_time_to_next_death=5, demo_tickrate=128,
 
     return df
 
+def sample_data(df):
+	pass
 
 def normalize(df):
     pass
 
 
-def randomize(df):
-    pass
+def randomize_files(fileList,num_of_chunks=10,max_num_of_files=None):
+
+	if max_num_of_files == None:
+		max_num_of_files = len(fileList)
+
+	#size_of_files = sum(os.path.getsize(f) for f in os.listdir('.') if os.path.isfile(f))
+	df = load_file_as_df(fileList[0])
+
+	if max_num_of_files > 0:
+		for file in fileList[1:max_num_of_files]
+			df = pd.concat(df, load_file_as_df(file))
+
+	df = df.sample(frac=1) #Shuffling #TODO maybe sklearn shuffle?
+
+	df.to_hdf(str(Path.cwd() // 'parsed_files' // 'data.h5'), key='df', mode='w') #TODO Split into chunks!
+
+def load_file_as_df(filePath):
+	df = pd.read_csv(filePath, sep=',', na_values='-').astype(np.float32)
+
+	df.set_index('Tick', inplace=True)
+	# TODO Don't drop if still relevant
+	df.drop(columns=['Round'], inplace=True)
+	df.fillna(0.0, inplace=True)
+
+	return df
 
 
 if __name__ == "__main__":

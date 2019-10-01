@@ -151,6 +151,8 @@ class DemoFileParser {
         this.playerInfoBuffer = [];
         this.currentDemoFileName = "";
         this.currentDemoFilePath = "";
+
+		this.subscribeToDemoEvents();
     }
 
     parseDemoFile(pathToFile) {
@@ -167,9 +169,14 @@ class DemoFileParser {
             return;
         }
 
-        this.subscribeToDemoEvents();
         this.demoFile.parse(buffer);
     }
+
+	parseMultipleDemoFiles(pathToFileList) {
+		for (filePath in pathToFileList) {
+			parseDemoFile(pathToFileList);
+		}
+	}
 
     /**
      * Returns which ticks are supposed to be used for parsing.
@@ -220,16 +227,18 @@ class DemoFileParser {
         this.demoFile.on("end", e => {
             this.on_round_officially_ended();
             console.log(`Parsing of demo ${this.currentDemoFileName} is complete`);
-            let millis = Date.now() - this.start;
+            let millis = Date.now() - this.startTime;
             console.log("seconds elapsed = " + Math.floor(millis / 1000));
         });
 
         //Get player info at each relevant tick
         this.demoFile.on("tickend", tick => this.on_tickend());
 
+		//Events where ticks are not relevant
         this.demoFile.gameEvents.on("round_start", s => this.on_round_start());
         this.demoFile.gameEvents.on("round_freeze_end", f => this.on_round_freeze_end());
 
+		//Write down data at the end of every Round
         this.demoFile.gameEvents.on("round_officially_ended", s => this.on_round_officially_ended());
 
         console.log("Succesfully subscribed to all events!")
