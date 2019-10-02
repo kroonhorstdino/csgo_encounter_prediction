@@ -55,26 +55,27 @@ class CounterStrikeDataset(Dataset):
 
         self.num_players = num_players
 
-		self.death_time_window = death_time_window
+        self.death_time_window = death_time_window
 
         print('Initalize Dataset')
-		self.data = preprocess.load_file_as_df(files[0])
+        self.data = preprocess.load_file_as_df(files[0])
 
-		self.num_features = len(self.data.columns)
+        self.num_features = len(self.data.columns)
 
-		#Add classification labels to Dataset
-		#WIP
-        self.data = preprocess.add_death_in_seconds_labels(df)
+        # Add classification labels to Dataset
+        # WIP
+        self.data = preprocess.add_die_within_sec_labels(self.data)
 
     def __getitem__(self, index):
 
-		player_i = random.randrange(0, 10)
-		player_features, classification_labels = data_loader.get_minibatch_balanced_player(self.data,player_i,batch_size=self.batch_size)
-		
-		return player_features, classification_labels, player_i
+        player_i = random.randrange(0, 10)
+        player_features, classification_labels = data_loader.get_minibatch_balanced_player(
+            self.data, player_i, batch_size=self.batch_size)
+
+        return player_features, classification_labels, player_i
 
     def __len__(self):
-        return int(self.data[0].index.size / self.batch_size)
+        return int(self.data.index.size / (self.batch_size / 20))
 
 
 def train_csgo():
@@ -92,8 +93,8 @@ def train_csgo():
     training_generator = torch.utils.data.DataLoader(
         training_set, shuffle=True)
 
-    print(training_set.data[0].iloc[200])
-    print(str(training_set.data[0].index.size))
+    print(training_set.data.iloc[200])
+    print(str(training_set.data.index.size))
 
     model = models.SharedWeightsCSGO(
         num_player_features=training_set.num_features, num_labels=10)
@@ -118,7 +119,7 @@ def train_csgo():
     all_validation_roc_scores = []
     all_validation_pr_scores = []
 
-    for epoch_i in range(training_set.batch_size):
+    for epoch_i in range(training_set.epoch_size):
 
         now = time.time()
 
@@ -143,6 +144,7 @@ def train_csgo():
             player_i = player_i[0].to(device)
 
             # Forward + Backward + Optimize
+            #Remove gradients from last iteration
             optimizer.zero_grad()
 
             # print(X)
@@ -155,8 +157,7 @@ def train_csgo():
             player_i_output = output[:, player_i]
             player_i_labels = y[:, player_i]
 
-            loss = binary_classification_loss(
-                player_i_output, player_i_labels)
+            loss = binary_classification_loss(player_i_output, player_i_labels)
 
             loss.backward()
             optimizer.step()
@@ -243,8 +244,7 @@ def train_csgo():
                     np.array(all_train_per_sec_predictions_std))
 
         if (epoch_i % 100) == 99:
-            torch.save(model.state_dict(), "model" +
-                       str(epoch_i) + ".model")
+            torch.save(model.state_dict(), "model" + str(epoch_i) + ".model")
 
 
 if __name__ == "__main__":

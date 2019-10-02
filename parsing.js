@@ -80,7 +80,7 @@ const playerFeatures = [
         title: 'DistanceToAlly_4'
     }, {
         id: 'distanceToEnemy_0',
-        title: 'DistanceToEnemy_1'
+        title: 'DistanceToEnemy_0'
     }, {
         id: 'distanceToEnemy_1',
         title: 'DistanceToEnemy_1'
