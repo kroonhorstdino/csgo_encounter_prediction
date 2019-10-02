@@ -52,9 +52,9 @@ class SharedWeightsCSGO(torch.nn.Module):
         super(SharedWeightsCSGO, self).__init__()
 
         if shared_layer_sizes is None:
-            shared_layer_sizes = [100, 60, 20]
+            shared_layer_sizes = [200, 100, 60, 20]
         if dense_layer_sizes is None:
-            dense_layer_sizes = [100]
+            dense_layer_sizes = [150, 75]
 
         # have to use ModuleList because using a plain list fails to populate model.parameters()
         self.shared_layers = nn.ModuleList([])

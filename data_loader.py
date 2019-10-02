@@ -68,15 +68,15 @@ def get_isAlive_column_names(num_players=10):
     return column_names
 
 
-def get_deathState_column_names(num_players=10, max_seconds_in_future=5):
+def get_die_within_seconds_column_names(num_players=10, time_window_to_next_death=5):
     """
     Gets exact names for deathState classification columns
     """
     actual_column_names = []
 
     for index in range(num_players):
-        actual_column_name = 'l_' + str(index) + '_DeathState_in_' + \
-            str(max_seconds_in_future) + '_seconds'
+        actual_column_name = 'l_' + str(index) + '_die_within_' + \
+            str(time_window_to_next_death) + '_seconds'
         actual_column_names.append(actual_column_name)
 
     return actual_column_names

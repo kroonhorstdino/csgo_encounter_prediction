@@ -58,7 +58,7 @@ class CounterStrikeDataset(Dataset):
 		self.death_time_window = death_time_window
 
         print('Initalize Dataset')
-		df = preprocess.load_file_as_df(files[0])
+		self.data = preprocess.load_file_as_df(files[0])
 
 		self.num_features = len(self.data.columns)
 
@@ -74,7 +74,7 @@ class CounterStrikeDataset(Dataset):
 		return player_features, classification_labels, player_i
 
     def __len__(self):
-        return self.data[0].index.size
+        return int(self.data[0].index.size / self.batch_size)
 
 
 def train_csgo():
@@ -102,7 +102,7 @@ def train_csgo():
 
     criterion = nn.CrossEntropyLoss()
     binary_classification_loss = torch.nn.BCELoss()
-    optimizer = OptimizerType(model.parameters(), lr=0.001)
+    optimizer = OptimizerType(model.parameters(), lr=pow(3.06, -5))
 
     all_train_losses = []
     all_train_accuracies = []
@@ -118,7 +118,7 @@ def train_csgo():
     all_validation_roc_scores = []
     all_validation_pr_scores = []
 
-    for epoch_i in range(50000):
+    for epoch_i in range(training_set.batch_size):
 
         now = time.time()
 
