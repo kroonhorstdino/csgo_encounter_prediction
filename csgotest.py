@@ -49,7 +49,7 @@ class CounterStrikeDatasetSimple(Dataset):
 
 
 class CounterStrikeDataset(Dataset):
-    def __init__(self, files, batch_size=64, epoch_size=50000, num_players=10):
+    def __init__(self, files, batch_size=128, epoch_size=50000, num_players=10):
         self.batch_size = batch_size
         self.epoch_size = epoch_size
 
@@ -64,7 +64,7 @@ class CounterStrikeDataset(Dataset):
         df.drop(columns=['Round'], inplace=True)
         df.fillna(0.0, inplace=True)
 
-        df = preprocess.add_death_in_seconds_labels(df)
+        df = preprocess.create_die_within_sec_labels(df)
         data, self.labels = data_loader.get_minibatch_simple(
             df)  # TODO Proper data loading
 
@@ -92,7 +92,7 @@ class CounterStrikeDataset(Dataset):
         return chosen_player_features, player_labels, player_i
 
     def __len__(self):
-        return self.data[0].index.size
+        return int(self.data[0].index.size / self.batch_size)
 
 
 def train_csgo():
@@ -120,7 +120,7 @@ def train_csgo():
 
     criterion = nn.CrossEntropyLoss()
     binary_classification_loss = torch.nn.BCELoss()
-    optimizer = OptimizerType(model.parameters(), lr=0.001)
+    optimizer = OptimizerType(model.parameters(), lr=pow(3.06, -5))
 
     all_train_losses = []
     all_train_accuracies = []
@@ -136,7 +136,7 @@ def train_csgo():
     all_validation_roc_scores = []
     all_validation_pr_scores = []
 
-    for epoch_i in range(50000):
+    for epoch_i in range(training_set.batch_size):
 
         now = time.time()
 

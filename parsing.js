@@ -227,8 +227,8 @@ class DemoFileParser {
         //Get player info at each relevant tick
         this.demoFile.on("tickend", tick => this.on_tickend());
 
-        this.demoFile.gameEvents.on("round_start", s => this.on_round_start());
-        this.demoFile.gameEvents.on("round_freeze_end", f => this.on_round_freeze_end());
+        this.demoFile.gameEvents.on("round_start", s => this.start_ignore_ticks());
+        this.demoFile.gameEvents.on("round_freeze_end", f => this.start_parsing_ticks());
 
         this.demoFile.gameEvents.on("round_officially_ended", s => this.on_round_officially_ended());
 
@@ -386,7 +386,7 @@ class DemoFileParser {
      *
      * @memberof DemoFileParser
      */
-    on_round_start() {
+    start_ignore_ticks() {
         this.ignoreTicks = true;
     }
 
@@ -394,7 +394,7 @@ class DemoFileParser {
      * Once the timer of the round starts and players can move
      * 
      */
-    on_round_freeze_end() {
+    start_parsing_ticks() {
         //Start parsing ticks once player can move again
         this.ignoreTicks = false;
     }
