@@ -1,0 +1,11 @@
+{
+	"model_parameters": {
+		"lr": 0.001
+	},
+	"shared_layers": [
+		120, 10
+	],
+	"dense_layers": [
+		1000, 500, 10
+	]
+}
