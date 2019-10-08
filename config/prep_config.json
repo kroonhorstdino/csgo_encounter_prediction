@@ -1,0 +1,7 @@
+{
+    "paths": {
+        "demo_files_path": "../demo_files/",
+        "parsed_files_path": "../demo_files/",
+        "processed_files_path": "../demo_files/"
+    }
+}
