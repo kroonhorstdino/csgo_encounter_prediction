@@ -5,8 +5,7 @@ import sys
 import os
 from pathlib import Path
 
-import data_loader 
-import preparation
+import data_loader
 
 import torch
 import torch.nn as nn

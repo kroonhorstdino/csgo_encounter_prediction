@@ -1,0 +1,30 @@
+{
+  "name": "csgo_encounter_prediction",
+  "version": "1.0.0",
+  "description": "CSGO Encounter Prediction using Deep Learning",
+  "main": "parsing.js",
+  "dependencies": {
+    "csv-writer": "^1.5.0",
+    "demofile": "^1.0.6",
+    "glob": "^7.1.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/kroonhorstdino/csgo_encounter_prediction.git"
+  },
+  "keywords": [
+    "machine",
+    "learning",
+    "csgo"
+  ],
+  "author": "kroonhorstdino",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kroonhorstdino/csgo_encounter_prediction/issues"
+  },
+  "homepage": "https://github.com/kroonhorstdino/csgo_encounter_prediction#readme"
+}

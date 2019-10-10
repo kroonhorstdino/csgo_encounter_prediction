@@ -9,13 +9,15 @@
 			"type": "node",
 			"request": "launch",
 			"name": "Launch Program",
-			"program": "${file}"
+			"program": "${workspaceFolder}/${relativeFile}"
+			
+			
 		},
 		{
 			"name": "Python: Aktuelle Datei",
 			"type": "python",
 			"request": "launch",
-			"program": "${file}",
+			"program": "${workspaceFolder}/${relativeFile}",
 			"console": "integratedTerminal"
 		}, 
 		{

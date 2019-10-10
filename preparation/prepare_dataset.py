@@ -1,9 +1,12 @@
 import sys
 import os
 import random
+import json
 
 import data_loader
 import preprocess
+
+import subprocess
 
 import numpy as np
 import pandas as pd
@@ -25,8 +28,15 @@ def generate_dataset_file_partitions(files_path : Path, split_percentages=[0.5,0
     return raw_data_file_list
 
 def parse_data(demo_files_path: Path, parsed_csv_files_path: Path):
-    #TODO NEXT THING HERE!
-    pass
+
+    #Get list of demo files in dictionary
+    files_paths = data_loader.get_files_in_dictionary(demo_files_path, '.dem')
+
+    for file_path in files_paths:
+        # Parse each file
+        subprocess.run(['nodejs','./preparation/parsing.js', str(file_path), str(parsed_csv_files_path)])
+
+
 
 def preprocess_data(parsed_csv_files_path: Path, processed_files_path: Path, config=None):
     '''
@@ -47,9 +57,14 @@ def preprocess_data(parsed_csv_files_path: Path, processed_files_path: Path, con
            
 
 if __name__ == '__main__':
-    preprocess_data(Path.cwd() / 'parsed_files', Path.cwd() / 'parsed_files')
+    #preprocess_data(Path.cwd() / 'parsed_files', Path.cwd() / 'parsed_files')
+    #
 
-    
+    config = None
+    with open('config/prep_config.json') as json_file:
+        config = json.load(json_file)
+
+    parse_data(config["paths"]["demo_files_path"],config["paths"]["parsed_files_path"])  
         
         
 

@@ -1,9 +1,9 @@
 const fs = require("fs");
 const demofile = require("demofile");
 const path = require("path");
+const config = require("../config/prep_config.json")
 
-const createCsvWriter = require('csv-writer').createObjectCsvWriter;
-
+/*
 //For writing to file that contains deaths
 const writerToDeaths = createCsvWriter({
     path: 'death.csv',
@@ -32,151 +32,164 @@ const writerToDeaths = createCsvWriter({
             title: 'AttackerPosition'
         },
     ]
-});
-
-let writerObject = {
-    path: 'parsed_files\\positions.csv'
-};
-
-const playerFeatures = [
-    /*{
-            id: 'playerName',
-            title: 'PlayerName'
-        },*/
-    {
-        id: 'isAlive',
-        title: 'IsAlive'
-    }, {
-        id: 'positionX',
-        title: 'PositionX'
-    }, {
-        id: 'positionY',
-        title: 'PositionY'
-    }, {
-        id: 'positionZ',
-        title: 'PositionZ'
-    }, {
-        id: 'velocityX',
-        title: 'VelocityX'
-    }, {
-        id: 'velocityY',
-        title: 'VelocityY'
-    }, {
-        id: 'velocityZ',
-        title: 'VelocityZ'
-    },
-    //Relative distance to all other players (1-9)
-    {
-        id: 'distanceToAlly_1',
-        title: 'DistanceToAlly_1'
-    }, {
-        id: 'distanceToAlly_2',
-        title: 'DistanceToAlly_2'
-    }, {
-        id: 'distanceToAlly_3',
-        title: 'DistanceToAlly_3'
-    }, {
-        id: 'distanceToAlly_4',
-        title: 'DistanceToAlly_4'
-    }, {
-        id: 'distanceToEnemy_0',
-        title: 'DistanceToEnemy_0'
-    }, {
-        id: 'distanceToEnemy_1',
-        title: 'DistanceToEnemy_1'
-    }, {
-        id: 'distanceToEnemy_2',
-        title: 'DistanceToEnemy_2'
-    }, {
-        id: 'distanceToEnemy_3',
-        title: 'DistanceToEnemy_3'
-    }, {
-        id: 'distanceToEnemy_4',
-        title: 'DistanceToEnemy_4'
-    },
-    //Health, etc.
-    {
-        id: 'health',
-        title: 'Health'
-    }, {
-        id: 'isScoped',
-        title: 'IsScoped'
-    }, {
-        id: 'isDefusing',
-        title: 'IsDefusing'
-    },
-    /*{
-           id: '',
-           title:
-       }*/
-]
-
-let allFeatures = [{
-        id: 'round',
-        title: 'Round'
-    },
-    {
-        id: 'tick',
-        title: 'Tick'
-    }
-]
-
-
-for (const feature of playerFeatures) {
-    for (let i = 0; i < 10; i++) {
-        let newId = `f_${i}_${feature.id}`;
-        let newTitle = `f_${i}_${feature.title}`;
-
-        allFeatures.push({
-            id: newId,
-            title: newTitle
-        });
-
-    }
-}
-
-writerObject["header"] = allFeatures;
-
-/**
- * Colums in the CSV file that contains player positions
- */
-const writerToPlayerInfo = createCsvWriter(writerObject);
+});*/
 
 class DemoFileParser {
-    constructor() {
+    constructor(demoFilePath, targetDirectory) {
         this.demoFile = new demofile.DemoFile();
+
+        this.demoFilePath = demoFilePath; 
+        this.demoFileName = path.basename(demoFilePath);
+
+        this.featureWriterObject = this.createFeatures();
+        this.featureWriterObject.path = targetDirectory + path.basename(demoFilePath,".dem") + '.csv'
+
+        this.createCsvWriter = require('csv-writer').createObjectCsvWriter;
+
+        console.log("Attempting to parse " + this.demoFileName);
+
         this.playersInTeams = [];
 
         this.deathDataBuffer = [];
         this.playerInfoBuffer = [];
-        this.currentDemoFileName = "";
-        this.currentDemoFilePath = "";
 
-		this.subscribeToDemoEvents();
+        try {
+            this.subscribeToDemoEvents();
+            this.parseDemoFile();
+        } catch(e) {
+            console.log(">>>> Error message during demo parsing: \n>>>>>> " + e.message)
+            console.log(">>>> Demo has some irregularities, aborting and deleting file!");
+
+            try { fs.unlinkSync(this.featureWriterObject.path); } catch(e) {
+            }
+        }
+        
     }
 
-    parseDemoFile(pathToFile) {
+    createFeatures() {
+
+        const playerFeatures = [
+            /*{
+                    id: 'playerName',
+                    title: 'PlayerName'
+                },*/
+            {
+                id: 'isAlive',
+                title: 'IsAlive'
+            }, {
+                id: 'positionX',
+                title: 'PositionX'
+            }, {
+                id: 'positionY',
+                title: 'PositionY'
+            }, {
+                id: 'positionZ',
+                title: 'PositionZ'
+            }, {
+                id: 'velocityX',
+                title: 'VelocityX'
+            }, {
+                id: 'velocityY',
+                title: 'VelocityY'
+            }, {
+                id: 'velocityZ',
+                title: 'VelocityZ'
+            },
+            //Relative distance to all other players (1-9)
+            {
+                id: 'distanceToAlly_1',
+                title: 'DistanceToAlly_1'
+            }, {
+                id: 'distanceToAlly_2',
+                title: 'DistanceToAlly_2'
+            }, {
+                id: 'distanceToAlly_3',
+                title: 'DistanceToAlly_3'
+            }, {
+                id: 'distanceToAlly_4',
+                title: 'DistanceToAlly_4'
+            }, {
+                id: 'distanceToEnemy_0',
+                title: 'DistanceToEnemy_0'
+            }, {
+                id: 'distanceToEnemy_1',
+                title: 'DistanceToEnemy_1'
+            }, {
+                id: 'distanceToEnemy_2',
+                title: 'DistanceToEnemy_2'
+            }, {
+                id: 'distanceToEnemy_3',
+                title: 'DistanceToEnemy_3'
+            }, {
+                id: 'distanceToEnemy_4',
+                title: 'DistanceToEnemy_4'
+            },
+            //Health, etc.
+            {
+                id: 'health',
+                title: 'Health'
+            }, {
+                id: 'isScoped',
+                title: 'IsScoped'
+            }, {
+                id: 'isDefusing',
+                title: 'IsDefusing'
+            },
+            /*{
+                   id: '',
+                   title:
+               }*/
+        ]
+        
+        let allFeatures = [{
+                id: 'round',
+                title: 'Round'
+            },
+            {
+                id: 'tick',
+                title: 'Tick'
+            }
+        ]        
+        
+        for (const feature of playerFeatures) {
+            for (let i = 0; i < 10; i++) {
+                let newId = `f_${i}_${feature.id}`;
+                let newTitle = `f_${i}_${feature.title}`;
+        
+                allFeatures.push({
+                    id: newId,
+                    title: newTitle
+                });
+        
+            }
+        }
+
+        let writerObject = {}
+
+        writerObject["header"] = allFeatures;
+
+        return writerObject;
+    }
+
+    async parseDemoFile() {
         this.startTime = Date.now();
 
-        this.currentDemoFilePath = pathToFile;
-        this.currentDemoFileName = path.basename(pathToFile);
+        /**
+        * Final writer for parsing this demo
+        */
+        this.writerToPlayerInfo = this.createCsvWriter(this.featureWriterObject);
+
         let buffer = null;
 
         try {
-            buffer = fs.readFileSync(this.currentDemoFilePath);
+            buffer = fs.readFileSync(this.demoFilePath);
         } catch (e) {
-            console.error("Demo file could not be opened!" + e);
+            console.error("Demo file could not be opened! " + e);
             return;
         }
 
         this.demoFile.parse(buffer);
     }
-
-	parseMultipleDemoFiles(pathToFileList) {
-		for (filePath in pathToFileList) {
-			parseDemoFile(pathToFileList);
-		}
-	}
 
     /**
      * Returns which ticks are supposed to be used for parsing.
@@ -185,20 +198,33 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     getTickSampleRateModulo() {
-        switch (this.demoFile.tickRate) {
-            case 128:
-                return 16;
-                break;
-            case 64:
-                return 8; //Get every 8th tick
-                break;
-            case 32:
-                return 4; //Get every 4th tick
-                break;
-            default:
-                //In case of irregular tick rates
-                return Math.round(this.demoFile.tickRate / (this.demoFile.tickRate / 8)) //64 / (64 / 8)
-                break;
+
+        //Incase tickrate is not accesible in the demo
+        try {
+            switch (this.demoFile.tickRate) {
+                case 128:
+                    return 16;
+                    break;
+                case 64:
+                    return 8; //Get every 8th tick
+                    break;
+                case 32:
+                    return 4; //Get every 4th tick
+                    break;
+                case 16:
+                    return 2;
+                    break;
+                default:
+                    //In case of irregular tick rates
+                    return Math.round(this.demoFile.tickRate / (this.demoFile.tickRate / 8)) //64 / (64 / 8)
+                    break;
+            }
+        } catch (e) {
+            console.log("No tickrate!");
+        }
+        finally {
+            //Emergency tickrate, assumes normal tickrate is 64 (as it is with FaceIt Demos)
+            return 8;
         }
     }
 
@@ -208,10 +234,11 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     subscribeToDemoEvents() {
+        this.SampleRateModulo = this.getTickSampleRateModulo();
 
         //Beginning of demo file
         this.demoFile.on("start", s => {
-            this.SampleRateModulo = this.getTickSampleRateModulo();
+
             this.ignoreTicks = true; //Ingore ticks until first round starts
 
             //Put players into an objects that holds both teams
@@ -226,7 +253,7 @@ class DemoFileParser {
         //End of the demo file
         this.demoFile.on("end", e => {
             this.on_round_officially_ended();
-            console.log(`Parsing of demo ${this.currentDemoFileName} is complete`);
+            console.log(`Parsing of demo ${this.demoFileName} is complete`);
             let millis = Date.now() - this.startTime;
             console.log("seconds elapsed = " + Math.floor(millis / 1000));
         });
@@ -241,6 +268,11 @@ class DemoFileParser {
         this.demoFile.gameEvents.on("round_officially_ended", s => this.on_round_officially_ended());
 
         console.log("Succesfully subscribed to all events!")
+    }
+
+    on_abort() {
+        console.log("Parsing of file has been terminated because of irregularities in demo!");
+        process.exit(1);
     }
 
     on_tickend() {
@@ -421,7 +453,7 @@ class DemoFileParser {
 
         const finishedRound = this.demoFile.gameRules.roundsPlayed;
 
-        console.log(`ROUND >>${finishedRound}<< HAS ENDED!`);
+        console.log(`===========> ROUND: ${finishedRound} HAS ENDED!`);
 
         /** 
          * Write round intro all stored entries
@@ -436,22 +468,37 @@ class DemoFileParser {
         /** 
          * WRITE DATA TO CSV FILE
          */
-        writerToPlayerInfo
+        this.writerToPlayerInfo
             .writeRecords(this.playerInfoBuffer);
-        writerToDeaths
-            .writeRecords(this.deathDataBuffer);
-        console.log(">> Data of last Round written to CSV");
+        //this.writerToDeaths.writeRecords(this.deathDataBuffer);
+        console.log("===========> Data of last Round written to CSV");
 
         this.playerInfoBuffer.length = 0
         this.deathDataBuffer.length = 0
     }
 }
 
-const demo = new DemoFileParser();
+let debug = true
+let demoFilePath, parsedFilePath;
+
+if (debug == true) {
+    demoFilePath = '../demo_files/sprout-vs-ex-epsilon-m3-overpass.dem';
+    parsedFilePath = 'parsed_files/';
+} else {
+    //TODO different ways to set paths
+    demoFilePath = process.argv[2]
+    parsedFilePath = process.argv[3]
+}
+
+new DemoFileParser(demoFilePath, parsedFilePath);
+
+/*
 try {
     fs.unlinkSync('parsed_files\\positions.csv')
     console.log("Deleted old file!")
 } catch (e) {
     console.log("Do nothing!")
 }
-demo.parseDemoFile(path.resolve('vitality-vs-liquid-m2-dust2.dem'))
+*/
+
+//demo.parseDemoFile(path.resolve('vitality-vs-liquid-m2-dust2.dem'))
