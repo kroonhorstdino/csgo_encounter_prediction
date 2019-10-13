@@ -4,14 +4,20 @@
 	// Weitere Informationen finden Sie unter https://go.microsoft.com/fwlink/?linkid=830387
 	"version": "0.2.0",
 	"configurations": [
-
 		{
 			"type": "node",
 			"request": "launch",
 			"name": "Launch Program",
 			"program": "${workspaceFolder}/${relativeFile}"
-			
-			
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Launch in Debug Mode",
+			"program": "${workspaceFolder}/${relativeFile}",
+			"args": [
+				"true"
+			]
 		},
 		{
 			"name": "Python: Aktuelle Datei",
@@ -19,7 +25,7 @@
 			"request": "launch",
 			"program": "${workspaceFolder}/${relativeFile}",
 			"console": "integratedTerminal"
-		}, 
+		},
 		{
 			"name": "Python: CSGO Test",
 			"type": "python",

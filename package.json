@@ -8,7 +8,10 @@
     "demofile": "^1.0.6",
     "glob": "^7.1.4"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "eslint": "^6.5.1",
+    "eslint-config-google": "^0.14.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -4,6 +4,7 @@ import pandas as pd
 import sys
 import os
 from pathlib import Path
+from typing import List
 
 import data_loader
 
@@ -60,27 +61,50 @@ def add_die_within_sec_labels(df: pd.DataFrame, time_window_to_next_death: int =
             if past_tick in df.index:  # Past tick may have been discarded during parsing
                 # Player is going to die in the next x seconds at this tick
                 index_location = df.index.get_loc(past_tick)
-                #debug_test_sample = df.iloc[int(index_location)]
+                # debug_test_sample = df.iloc[int(index_location)]
 
                 label_deathState_column_list[index_location] = 1
 
         label_deathState_column_lists[player_i] = label_deathState_column_list
 
-    new_column_names = data_loader.get_die_within_seconds_column_names(time_window_to_next_death=time_window_to_next_death)
+    new_column_names = data_loader.get_die_within_seconds_column_names(
+        time_window_to_next_death=time_window_to_next_death)
 
     # Add deathState lists into df as columns for each player
     for player_i, label_deathState_column_list in enumerate(label_deathState_column_lists):
         # TODO
         # new_column_name = f'l_{player_i}_die_within_in_{max_time_to_next_death}_seconds'
 
-        df[new_column_names[player_i]] = label_deathState_column_list.astype(np.float32)
+        df[new_column_names[player_i]
+           ] = label_deathState_column_list.astype(np.float32)
 
         # print(df.head(20))
 
     return df
 
+# TODO: Do one hot encoding for weapons
 
-def randomize_processed_files(fileList, size_of_chunks_in_rows=5000, max_num_of_files=None):
+
+def one_hot_encoding_weapons(df: pd.DataFrame):
+    '''
+            JAVASCRIPT CODE
+            for (const weaponIndex in itemDefinitionIndexMap) {
+                # Don't add other knifes to the feature list, all knifes will be mapped to "normal knife" (index 42)
+                if (this.isDifferentKnifeWeaponIndex(weaponIndex)) continue;
+
+                const weaponClassName = `${itemDefinitionIndexMap[weaponIndex].className}_${weaponIndex}`;
+
+                playerFeatures.push({
+                    id: weaponClassName,
+                    // Uppercase for first letter(I don't know why exactly)
+                    title: (weaponClassName.substring(0, 1)[0].toUpperCase()).concat(
+                        weaponClassName.substring(1))
+                });}
+    '''
+    return df
+
+
+def randomize_processed_files(fileList: List[Path], size_of_chunks_in_rows=5000, max_num_of_files: int = None):
     '''
     Puts multiple .h5 together and shuffles them together. After that they are split into roughly equal chunks
     '''
@@ -89,27 +113,29 @@ def randomize_processed_files(fileList, size_of_chunks_in_rows=5000, max_num_of_
         max_num_of_files = len(fileList)
 
     # size_of_files = sum(os.path.getsize(f) for f in os.listdir('.') if os.path.isfile(f))
-    df = data_loader.load_file_as_df(fileList[0])
+    df = data_loader.load_h5_as_df(fileList[0], True)
+    # Ticks are dropped, because they are not needed anymore
 
     if max_num_of_files > 0:
         for file in fileList[1:max_num_of_files]:
-            df = pd.concat(df, data_loader.load_file_as_df(file))
+            new_df = pd.read_hdf(file)
+            df = pd.concat(df, )
 
-    df = df.sample(frac=1)# Shuffling #TODO maybe sklearn shuffle?
+    df = df.sample(frac=1)  # Shuffling #TODO maybe sklearn shuffle?
 
     df_length = len(df)
 
     last_chunk_df = None
 
-    #Split dataframe into roughly equal parts (based on row count) and then save them to directory
+    # Split dataframe into roughly equal parts (based on row count) and then save them to directory
     for i in range(0, df_length, size_of_chunks_in_rows):
-        last_chunk_df = df[i : min(df_length - 1, i + size_of_chunks_in_rows)]
+        last_chunk_df = df[i: min(df_length - 1, i + size_of_chunks_in_rows)]
 
     df.to_hdf(str(Path.cwd() // 'parsed_files' // 'data.h5'),
               key='df', mode='w')  # TODO Split into chunks!
 
 
 if __name__ == "__main__":
-    lst = create_dataset.generate_dataset_file_partitions(Path.cwd() / 'parsed_files')
-
-    randomize_processed_files(lst)
+    # lst = create_dataset.generate_dataset_file_partitions(Path.cwd() / 'parsed_files')
+    # randomize_processed_files(lst)
+    pass
