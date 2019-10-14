@@ -1,6 +1,7 @@
 # General instructions
 
-**_WARNING_**: All features described in this document are still very much WIP!
+**_WARNING_**: All features described in this document are still very much WIP and probably don't work as described if at all,
+!
 
 ## Excution location
 
@@ -34,20 +35,25 @@ After this setup the dataset preparation can begin
 
 ### Do it in one go...
 
-After setting up the configuration, simply execute the `preprocessing/prepare_dataset.py` for complete parsing, preprocessing and randomization of the .dem files.
+After setting up the configuration, simply execute the `preparation/prepare_dataset.py` for complete parsing, preprocessing and randomization of the .dem files.
+
+By using the `-config PATH` option, the script will use the specified config. Otherwise it will use the default config `config/prep_config.json`
+
+Verbosity of logging is specified by the option `-v` in stages up to `-vvvv`
 
 ### ... or one step at a time
 
-For separate execution of the steps use the appropiately named files in the `preprocessing` folder:
+For separate execution of the steps use the argument option **`-mode`** of `prepration/prepare_dataset.py`:
 
-- `parsing.js`: Run to parse all .dem files specified in config. Output is **.csv** files of matches
-- `preprocess.py`: Add and remove all neccesary features of data for training. Output is **.h5** files of matches
-- `randomize.py`: Randomize all matches and generate chunks as **.h5** files. These can be used for training.
+- `parse`: Run to parse all .dem files specified in config. Output is **.csv** files of matches
+- `preprocess`: Add and remove all neccesary features of data for training. Output is **.h5** files of matches
+- `randomize`: Randomize all matches and generate chunks as **.h5** files. These can be used for training.
 
-For each program, new paths can be specified so that the default config paths are ignored
+Example:
 
-For example: `python preprocessing/parsing.js ../other_dir/other_demo_file_dir/ ./other_parsed_files`
-This input will parse **.dem** files from another folder and put it into another target directory. Relative paths can be used.
+`py create_dataset.py -mode preprocess -vv -config ./config/special.json`
+
+With `py create_dataset.py --help` a help page can be displayed.
 
 ## Hyperparameter search
 

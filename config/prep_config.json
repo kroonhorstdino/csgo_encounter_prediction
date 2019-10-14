@@ -3,5 +3,8 @@
         "demo_files_path": "../demo_files/",
         "parsed_files_path": "./parsed_files/",
         "processed_files_path": "./parsed_files/"
+    },
+    "randomize": {
+        "chunk_row_size": 2048
     }
 }

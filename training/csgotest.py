@@ -30,7 +30,7 @@ import matplotlib.animation as animation
 
 # in case it is called from a different location
 sys.path.append(Path.cwd())
-sys.path.append(Path.cwd().parent)
+sys.path.append(Path.cwd() / 'preparation')
 '''
 class CounterStrikeDatasetSimple(Dataset):
     def __init__(self, filePath):
@@ -61,10 +61,6 @@ class CounterStrikeDataset(Dataset):
         self.data = preprocess.load_file_as_df(files[0])
 
         self.num_features = len(self.data.columns)
-
-        # Add classification labels to Dataset
-        # WIP
-        self.data = preprocess.add_die_within_sec_labels(self.data)
 
     def __getitem__(self, index):
 
@@ -144,7 +140,7 @@ def train_csgo():
             player_i = player_i[0].to(device)
 
             # Forward + Backward + Optimize
-            #Remove gradients from last iteration
+            # Remove gradients from last iteration
             optimizer.zero_grad()
 
             # print(X)

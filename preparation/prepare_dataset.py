@@ -32,6 +32,8 @@ def generate_dataset_file_partitions(files_path: Path, split_percentages=[0.5, 0
 
 def parse_data(demo_files_path: Path, parsed_csv_files_path: Path):
 
+    num_failed_parse = 0
+
     print("Starting to parse demo files in folder: '" +
           str(demo_files_path) + "'")
     start_time_parse = time.process_time()
@@ -42,13 +44,17 @@ def parse_data(demo_files_path: Path, parsed_csv_files_path: Path):
     for file_path in files_paths:
 
         # Just to be sure
+        parsing_script_location = str(Path('./preparation/parsing.js'))
         csv_file = str(file_path)
         target_dir = str(parsed_csv_files_path)
-        parsing_script_location = str(Path('./preparation/parsing.js'))
 
         # Use parsing.js to parse demo
-        subprocess.run(['node', parsing_script_location,
-                        csv_file, target_dir, str(args.verbose)], shell=True)
+        completedProcess = subprocess.run(['node', parsing_script_location,
+                                           csv_file, target_dir, str(args.verbose)], shell=True)
+
+        # Count number of failed parse attempts
+        if(completedProcess.returncode == 1):
+            num_failed_parse += 1
 
     # Time keeping
     end_time_parse = time.process_time()

@@ -277,9 +277,9 @@ class DemoFileParser {
             } catch (e) {
                 console.log(">>>> Error message during demo parsing: \n>>>>>> " + e.message);
                 console.log(">>>> Demo has some irregularities, aborting and deleting file!");
-            }
 
-            console.log("")
+                process.exitCode = 1;
+            }
         }
 
     }
@@ -291,7 +291,7 @@ class DemoFileParser {
      */
     subscribeToDemoEvents() {
 
-        //Beginning of demo file
+        //Setting up things
         this.demoFile.on("start", s => {
 
             this.SampleRateModulo = this.getTickSampleRateModulo();
@@ -307,6 +307,15 @@ class DemoFileParser {
             }
         });
 
+        //Get player info at each relevant tick
+        this.demoFile.on("tickend", tick => this.on_tickend());
+
+        this.demoFile.gameEvents.on("round_start", s => this.start_ignore_ticks());
+        this.demoFile.gameEvents.on("round_freeze_end", f => this.start_parsing_ticks());
+
+        //Write down data at the end of every Round
+        this.demoFile.gameEvents.on("round_officially_ended", s => this.on_round_officially_ended());
+
         //End of the demo file
         this.demoFile.on("end", e => {
             this.on_round_officially_ended();
@@ -317,16 +326,28 @@ class DemoFileParser {
             if (this.verbosity > 1) console.log("------------ Parsing of demo took " + Math.floor(millis / 1000) + " seconds");
         });
 
-        //Get player info at each relevant tick
-        this.demoFile.on("tickend", tick => this.on_tickend());
-
-        this.demoFile.gameEvents.on("round_start", s => this.start_ignore_ticks());
-        this.demoFile.gameEvents.on("round_freeze_end", f => this.start_parsing_ticks());
-
-        //Write down data at the end of every Round
-        this.demoFile.gameEvents.on("round_officially_ended", s => this.on_round_officially_ended());
-
         if (this.verbosity > 1) console.log("$$$$$$ Succesfully subscribed to all events!");
+    }
+
+    parseDemoFile() {
+        this.startTime = Date.now();
+
+        /**
+         * Final writer for parsing this demo
+         */
+        this.writerToPlayerInfo = this.createCsvWriter(this.featureWriterObject);
+
+        let buffer = null;
+
+        try {
+            buffer = fs.readFileSync(this.demoFilePath);
+        } catch (e) {
+            console.error("(`------------ Demo file could not be opened! " + e);
+            process.exitCode = 1;
+            return;
+        }
+
+        this.demoFile.parse(buffer);
     }
 
     on_tickend() {
@@ -381,26 +402,6 @@ class DemoFileParser {
 
         this.playerInfoBuffer.length = 0;
         this.deathDataBuffer.length = 0;
-    }
-
-    parseDemoFile() {
-        this.startTime = Date.now();
-
-        /**
-         * Final writer for parsing this demo
-         */
-        this.writerToPlayerInfo = this.createCsvWriter(this.featureWriterObject);
-
-        let buffer = null;
-
-        try {
-            buffer = fs.readFileSync(this.demoFilePath);
-        } catch (e) {
-            console.error("(`------------ Demo file could not be opened! " + e);
-            return;
-        }
-
-        this.demoFile.parse(buffer);
     }
 
     //Should a tick message be printed now?
