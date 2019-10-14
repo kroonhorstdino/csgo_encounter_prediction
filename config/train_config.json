@@ -7,5 +7,7 @@
 	],
 	"dense_layers": [
 		1000, 500, 10
-	]
+	],
+	"batch_size": 128,
+	"num_epoch": 50000
 }

@@ -10,8 +10,10 @@ import argparse
 import numpy as np
 import pandas as pd
 
-import data_loader
-import preprocess
+import preparation.data_loader as data_loader
+import preparation.preprocess as preprocess
+
+import platform
 
 sys.path.append(Path.cwd().parent)
 sys.path.append(Path.cwd())
@@ -35,12 +37,12 @@ def parse_data(demo_files_path: Path, parsed_csv_files_path: Path):
     num_failed_parse = 0
 
     print("Starting to parse demo files in folder: '" +
-          str(demo_files_path) + "'")
+          str(demo_files_path) + "'" + " with verbosity " + str(args.verbose))
     start_time_parse = time.process_time()
 
     # Get list of demo files in dictionary
     # Parse each demo file in demo_files_path
-    files_paths = data_loader.get_files_in_dictionary(demo_files_path, '.dem')
+    files_paths = data_loader.get_files_in_dictionary(Path(demo_files_path), '.dem')
     for file_path in files_paths:
 
         # Just to be sure
@@ -48,13 +50,17 @@ def parse_data(demo_files_path: Path, parsed_csv_files_path: Path):
         csv_file = str(file_path)
         target_dir = str(parsed_csv_files_path)
 
-        # Use parsing.js to parse demo
-        completedProcess = subprocess.run(['node', parsing_script_location,
-                                           csv_file, target_dir, str(args.verbose)], shell=True)
+        #Platform dependant NOTE:
+        shell_bool = False
+        if(platform.system() == 'windows'): shell_bool = True
 
-        # Count number of failed parse attempts
-        if(completedProcess.returncode == 1):
+        # Use parsing.js to parse demo
+        completedProcess = subprocess.run(['nodejs', parsing_script_location,
+                                           csv_file, target_dir, str(args.verbose)], shell=shell_bool)
+
+        if (completedProcess.returncode == 1):
             num_failed_parse += 1
+            print("Failed parsing...")
 
     # Time keeping
     end_time_parse = time.process_time()
@@ -64,7 +70,7 @@ def parse_data(demo_files_path: Path, parsed_csv_files_path: Path):
     print("Parsing took >>" + str(elapsed_time_parse) + " seconds<<")
 
 
-def preprocess_data(parsed_csv_files_path: Path, processed_files_path: Path):
+def preprocess_data(parsed_csv_files_path: Path, processed_files_path: Path, delete_old_csv: bool=False):
     '''
     Processes data from matches in .csv files to .h5 files that contain all nessecary features for training
 
@@ -78,12 +84,18 @@ def preprocess_data(parsed_csv_files_path: Path, processed_files_path: Path):
         df = data_loader.load_csv_as_df(parsed_csv_file)
 
         df = preprocess.add_die_within_sec_labels(df)
+        df = preprocess.undersample_pure_not_die_ticks(df, removal_frac=0.1)
         df = preprocess.one_hot_encoding_weapons(df)
 
         target_path = str(processed_files_path / f'{parsed_csv_file.stem}.h5')
 
-        df.to_hdf(target_path, key='df', mode='w')
-
+        try:
+            #Save to hdf and if specified, remove old csv file
+            df.to_hdf(target_path, key='df', mode='w')
+        except:
+            print("Couldn't save to dataframe...")
+        else:
+            if (delete_old_csv): os.remove(str(parsed_csv_file))  
 
 def randomize_data():
     pass
@@ -128,32 +140,26 @@ if __name__ == '__main__':
     if (args.config):
         config_path = args.config
 
-    config = None
-    try:
-
-        with open(config_path) as json_file:
-            print("Loading config from " + config_path)
-            config = json.load(json_file)
-    except:
-        print("Couldn't load config file, using default one")
-        with open('config/prep_config.json') as json_file:
-            config = json.load(json_file)
+    config = data_loader.load_config(config_path)
 
     if (args.mode != None):
         if (args.mode == 'all'):
+            print("Preparing entire dataset...")
             prepare_dataset()
         elif (args.mode == 'parse'):
-            parse_data(config["paths"]["demo_files_path"],
-                       config["paths"]["parsed_files_path"])
+            print("Only parsing...")
+            parse_data(Path(config["paths"]["demo_files_path"]),
+                       Path(config["paths"]["parsed_files_path"]))
         elif (args.mode == 'preprocess'):
-            preprocess_data(config["paths"]["parsed_files_path"],
-                            config["paths"]["processed_files_path"])
+            print("Only preprocessing...")
+            preprocess_data(Path(config["paths"]["parsed_files_path"]),
+                            Path(config["paths"]["processed_files_path"]))
         elif (args.mode == 'rand'):
             randomize_data()
 
-    # Time keeping
+    # Time keeping TODO: Time keeping is erroneous
     end_time_all = time.process_time()
 
     elapsed_time_all = end_time_all - start_time_all
     print("Preparation process in mode " +
-          args.mode + "took >>" + str(elapsed_time_all) + " seconds<<")
+          args.mode + " took >>" + str(elapsed_time_all) + " seconds<<")

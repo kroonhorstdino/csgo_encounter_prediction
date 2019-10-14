@@ -82,6 +82,12 @@ def add_die_within_sec_labels(df: pd.DataFrame, time_window_to_next_death: int =
 
     return df
 
+def undersample_pure_not_die_ticks(df : pd.DataFrame, death_time_window: int=5, removal_frac: float=0.5) -> pd.DataFrame:
+    '''
+        Remove a certain amount of ticks, which will not experience a death in the next x seconds
+    '''
+    return df
+
 # TODO: Do one hot encoding for weapons
 
 

@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 import sys
+import json
 
 from pathlib import Path
 from typing import Tuple, List
@@ -28,13 +29,19 @@ def get_minibatch_balanced_player(data: pd.DataFrame, player_i, batch_size=128, 
     player_dies_mask, player_not_die_mask = get_player_minibatch_mask(
         data, player_i, 5)
 
-    num_sample_from_die = int(batch_size/2)
+    num_sample_from_die = int(batch_size * 0.5)
     num_sample_from_not_die = batch_size - num_sample_from_die
 
     # Player stays dead
     have_enough_unique_data = sum(player_dies_mask) > num_sample_from_die
-    data_batch_die = data[player_dies_mask].sample(
-        n=num_sample_from_die, replace=(have_enough_unique_data == False))
+
+    data_batch_die: pd.DataFrame
+    try:
+        data_batch_die = data[player_dies_mask].sample(
+            n=num_sample_from_die, replace=(have_enough_unique_data == False))
+    except:
+        print("Not enough samples to balance this batch!")
+        raise Exception()
 
     # Player stays alive
     have_enough_unique_data = sum(
@@ -65,7 +72,7 @@ def get_player_minibatch_mask(data: pd.DataFrame, player_i: int, max_time_to_nex
     return player_die_mask, player_not_die_mask
 
 
-def split_data_into_minibatch(data: pd.DataFrame, max_time_to_next_death: int = 5) -> Tuple[List[pd.DataFrame], pd.DataFrame]:
+def split_data_into_minibatch(df: pd.DataFrame, max_time_to_next_death: int = 5) -> Tuple[List[pd.DataFrame], pd.DataFrame]:
     """
     Returns batch with input features and classification labels
     Samples of players are separated in a list
@@ -74,16 +81,23 @@ def split_data_into_minibatch(data: pd.DataFrame, max_time_to_next_death: int = 
     # Get classification labels for players
     classification_column_names = get_die_within_seconds_column_names(
         10, max_time_to_next_death)
-    classification_labels = data[classification_column_names].to_numpy()
+    classification_labels = df[classification_column_names].to_numpy()
 
-    player_features = []
-
-    for player_i in range(10):
-                # Filter feature columns for each player, without classification labels
-        player_features.append(data.filter(like=f'f_{player_i}_').to_numpy())
+    player_features = get_player_features_array(df)
 
     return player_features, classification_labels
 
+def get_player_features_array(df : pd.DataFrame) -> List[pd.DataFrame]:
+    '''
+    Separate player features into Dataframes from each player as a list
+    '''
+    player_features = []
+
+    for player_i in range(10):
+        # Filter feature columns for each player, without classification labels
+        player_features.append(df.filter(like=f'f_{player_i}_').to_numpy())
+
+    return player_features
 
 def get_isAlive_column_names(num_players: int = 10) -> List[str]:
 
@@ -108,8 +122,14 @@ def get_die_within_seconds_column_names(num_players=10, time_window_to_next_deat
 
     return actual_column_names
 
+def get_num_player_features(column_labels: List[str]):
+    def filter_features(feature_label : str):
+        return feature_label.startswith('f_')
 
-def get_files_in_dictionary(files_path: Path, file_extension: str):
+    return len(list(filter(filter_features, column_labels.values)))
+
+
+def get_files_in_dictionary(files_path: Path, file_extension: str) -> List[Path]:
     '''
     Get all files in specified directory with matching extension
     '''
@@ -148,7 +168,20 @@ def load_h5_as_df(filePath: Path, drop_ticks: bool) -> pd.DataFrame:
     df.fillna(0.0, inplace=True)
 
     return df
+    
+def load_config(config_path : Path) -> dict:
+    config = None
+    try:
 
+        with open(str(config_path)) as json_file:
+            print("Loading config from " + config_path)
+            config = json.load(json_file)
+    except:
+        print("Couldn't load config file, using default one")
+        with open('config/prep_config.json') as json_file:
+            config = json.load(json_file)
+
+    return config
 
     # Testing
 if __name__ == "__main__":

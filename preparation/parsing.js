@@ -251,6 +251,12 @@ class DemoFileParser {
         this.demoFilePath = demoFilePath;
         this.demoFileName = path.basename(demoFilePath);
 
+        //How many ticks have actually been parsed
+        this.sucessfulParsedCounter = 0
+
+        //How many ticks have been seen as of now?
+        this.tickCounter = -1
+
         // Object that writes to CSV file
         this.featureWriterObject = this.createFeatures();
         this.featureWriterObject.path = path.join(targetDirectory, path.basename(demoFilePath, ".dem") + '.csv');
@@ -324,6 +330,7 @@ class DemoFileParser {
 
             let millis = Date.now() - this.startTime;
             if (this.verbosity > 1) console.log("------------ Parsing of demo took " + Math.floor(millis / 1000) + " seconds");
+            if (this.verbosity > 2) console.log(`------------ ${this.sucessfulParsedCounter} of ${this.demoFile.currentTick} ticks have been parsed and saved`);
         });
 
         if (this.verbosity > 1) console.log("$$$$$$ Succesfully subscribed to all events!");
@@ -351,13 +358,15 @@ class DemoFileParser {
     }
 
     on_tickend() {
+
+        this.tickCounter++; //New tick has been seen
         /** 
          * If this tick is not relevant, do not parse this tick
          */
         if (!this.isRelevantTick()) return;
 
         if (this.is_show_print_message()) {
-            console.log("|| Tick: " + this.demoFile.currentTick);
+            console.log("|| Tick: " + this.demoFile.currentTick + " | " + this.sucessfulParsedCounter);
         }
 
         /** 
@@ -406,7 +415,7 @@ class DemoFileParser {
 
     //Should a tick message be printed now?
     is_show_print_message() {
-        return (this.verbosity > 3) && (this.demoFile.currentTick % parseInt(5000 / this.verbosity)) == 0;
+        return (this.verbosity > 3) && (this.tickCounter % 1000 == 0);
     }
 
     /**
@@ -416,7 +425,7 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     isRelevantTick() {
-        return !this.ignoreTicks && (this.demoFile.currentTick % this.SampleRateModulo == 0);
+        return !this.ignoreTicks && (this.tickCounter % this.SampleRateModulo == 0);
     }
 
     /**
@@ -453,7 +462,7 @@ class DemoFileParser {
         if (t == undefined || ct == undefined) return;
 
 
-        let allPlayers = [].concat(t.members, ct.members);
+        const allPlayers = [].concat(t.members, ct.members);
 
         const currentTick = this.demoFile.currentTick;
 
@@ -545,6 +554,7 @@ class DemoFileParser {
             if (this.verbosity > 3) console.log("|| Tick: " + currentTick + " | Something went wrong, discarding this tick!");
             return;
         } else {
+            this.sucessfulParsedCounter++;
             this.playerInfoBuffer = this.playerInfoBuffer.concat(tickInfo);
         }
     }
@@ -712,6 +722,7 @@ class DemoFileParser {
 
         //Incase tickrate is not accesible in the demo
         try {
+            if(!(this.demoFile.tickRate >= 0)) throw NaN
             switch (this.demoFile.tickRate) {
                 case 128:
                     return 16;
@@ -731,10 +742,8 @@ class DemoFileParser {
 
             }
         } catch (e) {
-            if (this.verbosity > 1) console.log("$$$$$$ No tickrate detected! Assuming demo tickrate of 64");
-        } finally {
-            //Emergency tickrate, assumes normal tickrate is 64 (as it is with FaceIt Demos)
-            return 8;
+            if (this.verbosity > 1) console.log("$$$$$$ No tickrate detected! Assuming demo tickrate of 32");
+            return 4; //New tick has been seen
         }
     }
 
@@ -764,7 +773,7 @@ let verbosity = 4;
 
 //Its weird, but it works
 if (process.argv[2] == "true") {
-    demoFilePath = '../demo_files/vitality-vs-liquid-m2-dust2.dem';
+    demoFilePath = '../demo_files/sprout-vs-ex-epsilon-m3-overpass.dem';
     parsedFilePath = 'parsed_files/';
 } else {
     //TODO different ways to set paths
@@ -773,6 +782,7 @@ if (process.argv[2] == "true") {
     verbosity = Number(process.argv[4]);
 }
 
+console.log("Start parsing...")
 new DemoFileParser(demoFilePath, parsedFilePath, verbosity);
 
 /*

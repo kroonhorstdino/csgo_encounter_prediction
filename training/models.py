@@ -48,7 +48,7 @@ class SimpleFF(torch.nn.Module):
 
 
 class SharedWeightsCSGO(torch.nn.Module):
-    def __init__(self, num_player_features, num_players=10, num_labels=10, shared_layer_sizes=None, dense_layer_sizes=None):
+    def __init__(self, num_all_player_features, num_players=10, num_labels=10, shared_layer_sizes=None, dense_layer_sizes=None):
         super(SharedWeightsCSGO, self).__init__()
 
         if shared_layer_sizes is None:
@@ -65,7 +65,7 @@ class SharedWeightsCSGO(torch.nn.Module):
         '''
 
         # First layer of shared layers
-        previous_layer_size = int(num_player_features / num_players)
+        previous_layer_size = int(num_all_player_features / num_players)
 
         for layer_size in shared_layer_sizes:
             self.shared_layers.append(torch.nn.Linear(

@@ -12,14 +12,17 @@ import itertools
 import sys
 import time
 from pathlib import Path
+from typing import List, Tuple
+
+sys.path.insert(0, str(Path.cwd() / 'preparation/'))
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-import data_loader
-import preprocess
-import models
+import data_loader as data_loader
+import preprocess as preprocess
+import models as models
 
 import torch
 import torch.nn as nn
@@ -31,6 +34,7 @@ import matplotlib.animation as animation
 # in case it is called from a different location
 sys.path.append(Path.cwd())
 sys.path.append(Path.cwd() / 'preparation')
+
 '''
 class CounterStrikeDatasetSimple(Dataset):
     def __init__(self, filePath):
@@ -49,32 +53,63 @@ class CounterStrikeDatasetSimple(Dataset):
 
 
 class CounterStrikeDataset(Dataset):
-    def __init__(self, files, batch_size=64, epoch_size=50000, num_players=10, death_time_window=5):
-        self.batch_size = batch_size
-        self.epoch_size = epoch_size
+    def __init__(self, p_config, t_config, isValidationSet=False):
+        if (not isValidationSet):
+            self.dataset_files = data_loader.get_files_in_dictionary(p_config["paths"]["training_files_path"], '.h5')            
+        else:
+            self.dataset_files = data_loader.get_files_in_dictionary(p_config["paths"]["training_files_path"], '.h5')
 
-        self.num_players = num_players
+        self.batch_row_size = t_config["batch_size"]
 
-        self.death_time_window = death_time_window
+        self.num_chunks = len(self.dataset_files)
+        # Num of rows for each chunk
+        self.chunks_row_size = p_config["randomization"]["chunk_row_size"]
+        # Num of batches in the entire dataset
+        self.num_batches = int((self.num_chunks * self.chunks_row_size) / self.batch_row_size)
+        # Amount of batches divided by num of files is num of batches per chunk
+        self.batches_per_chunk = int(self.num_batches / self.num_chunks)
 
-        print('Initalize Dataset')
-        self.data = preprocess.load_file_as_df(files[0])
+        self.num_epoch = t_config["num_epoch"]
 
-        self.num_features = len(self.data.columns)
+        self.num_players = 10 #NOTE: Maybe there will be wingmen matches in the faaar future             
+        self.death_time_window = p_config["preprocessing"]["death_time_window"]
+
+        self.num_all_player_features = data_loader.get_num_player_features(data_loader.load_h5_as_df(self.dataset_files[0],False).columns)
 
     def __getitem__(self, index):
 
         player_i = random.randrange(0, 10)
-        player_features, classification_labels = data_loader.get_minibatch_balanced_player(
-            self.data, player_i, batch_size=self.batch_size)
+        
+        chosen_file = self.dataset_files[self.batch_index_to_chunk_index(index)]
+        #start_index, end_index = self.get_indicies_in_chunk(index)
+        chunk = data_loader.load_h5_as_df(chosen_file, True) 
+        #.iloc[start_index:end_index] A batch is going to be loaded from this chunk >batches_per_chunk< times anyways. If random, may be not so bad NOTE: FIXME:
+
+        player_features, classification_labels = data_loader.get_minibatch_balanced_player(chunk, player_i, batch_size=self.batch_row_size)
 
         return player_features, classification_labels, player_i
 
+    def batch_index_to_chunk_index(self, batch_index : int) -> int:
+        '''
+            In what file/chunk is this batch
+        '''
+        return int(batch_index / self.batches_per_chunk)
+
+    def get_indicies_in_chunk(self, batch_index) -> Tuple[int,int]:
+        batch_in_chunk = batch_index % self.batches_per_chunk
+
+        start_index_in_chunk = batch_in_chunk * self.batch_row_size
+        end_index_in_chunk = start_index_in_chunk + self.batch_row_size #End index in selecting is exclusive in pandas
+        
+        return start_index_in_chunk, end_index_in_chunk 
+
     def __len__(self):
-        return int(self.data.index.size / (self.batch_size / 20))
+        return self.batches_per_chunk * self.num_chunks 
 
+def train_csgo(prep_config_path : Path, train_config_path : Path):
 
-def train_csgo():
+    train_config = data_loader.load_config(train_config_path)
+    prep_config = data_loader.load_config(prep_config_path)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda:0" if use_cuda else "cpu")
@@ -84,16 +119,14 @@ def train_csgo():
 
     # the dataset returns a batch when called (because we get the whole batch from one file), the batch size of the data loader thus is set to 1 (default)
     # epoch size is how many elements the iterator of the generator will provide, NOTE should not be too small, because it have a significant overhead p=0.05
-    training_set = CounterStrikeDataset(
-        [(str(Path.cwd() / 'parsed_files' / 'positions.csv'))])
+    training_set = CounterStrikeDataset(prep_config, train_config, isValidationSet=False)
     training_generator = torch.utils.data.DataLoader(
         training_set, shuffle=True)
 
-    print(training_set.data.iloc[200])
-    print(str(training_set.data.index.size))
+    print("Batches per epoch: " + str(training_set.__len__()))
 
     model = models.SharedWeightsCSGO(
-        num_player_features=training_set.num_features, num_labels=10)
+        num_all_player_features=training_set.num_all_player_features , num_labels=10)
 
     model.to(device)
 
@@ -115,7 +148,7 @@ def train_csgo():
     all_validation_roc_scores = []
     all_validation_pr_scores = []
 
-    for epoch_i in range(training_set.epoch_size):
+    for epoch_i in range(training_set.num_epoch):
 
         now = time.time()
 
@@ -244,5 +277,4 @@ def train_csgo():
 
 
 if __name__ == "__main__":
-
-    train_csgo()
+    train_csgo('config/prep_config.json','config/train_config.json')

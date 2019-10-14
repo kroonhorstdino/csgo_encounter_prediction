@@ -22,3 +22,10 @@ var/
 .installed.cfg
 *.egg
 *.dem
+
+.vscode/
+.vs/
+.eslintrc.json
+
+.h5
+.csv
