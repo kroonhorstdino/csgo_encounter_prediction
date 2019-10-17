@@ -27,5 +27,6 @@ var/
 .vs/
 .eslintrc.json
 
-.h5
-.csv
+*.h5
+*.h5.leftover
+*.csv
