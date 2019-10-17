@@ -1,7 +1,7 @@
 const fs = require("fs");
 const demofile = require("demofile");
 const path = require("path");
-const config = require("../config/prep_config.json");
+const config = require("../config/dataset_config.json");
 
 /** 
  * Data of all weapons, needed for one hot encoding
@@ -252,10 +252,10 @@ class DemoFileParser {
         this.demoFileName = path.basename(demoFilePath);
 
         //How many ticks have actually been parsed
-        this.sucessfulParsedCounter = 0
+        this.sucessfulParsedCounter = 0;
 
         //How many ticks have been seen as of now?
-        this.tickCounter = -1
+        this.tickCounter = -1;
 
         // Object that writes to CSV file
         this.featureWriterObject = this.createFeatures();
@@ -722,7 +722,7 @@ class DemoFileParser {
 
         //Incase tickrate is not accesible in the demo
         try {
-            if(!(this.demoFile.tickRate >= 0)) throw NaN
+            if (!(this.demoFile.tickRate >= 0)) throw NaN;
             switch (this.demoFile.tickRate) {
                 case 128:
                     return 16;
@@ -782,7 +782,7 @@ if (process.argv[2] == "true") {
     verbosity = Number(process.argv[4]);
 }
 
-console.log("Start parsing...")
+console.log("Start parsing...");
 new DemoFileParser(demoFilePath, parsedFilePath, verbosity);
 
 /*

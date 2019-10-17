@@ -1,0 +1,15 @@
+{
+	"paths": {
+		"demo_files_path": "../demo_files/",
+		"parsed_files_path": "parsed_files/",
+		"processed_files_path": "processed_files/",
+		"training_files_path": "training_data/",
+		"validation_files_path": "validation_files/"
+	},
+	"preprocessing": {
+		"death_time_window": 5
+	},
+	"randomization": {
+		"chunk_row_size": 4096
+	}
+}

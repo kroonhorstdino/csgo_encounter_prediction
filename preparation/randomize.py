@@ -3,36 +3,100 @@ import pandas as pd
 
 import sys
 import os
+import time
 from pathlib import Path
 from typing import List
 
-import preparation.data_loader as data_loader
+sys.path.insert(0, str(Path.cwd() / 'preparation/'))
+
+import data_loader
 
 
-def randomize_processed_files(fileList: List[Path], randomized_files_path : Path, chunk_row_size=4096, max_num_of_files: int = None):
+def randomize_processed_file(file_path: Path):
+    df = data_loader.load_h5_as_df(file_path, True)
+
+    return randomize_processed_dataframe(df)
+
+
+def randomize_processed_dataframe(df: pd.DataFrame):
     '''
-    Combines multiple .h5 together and shuffles them. After that they are split into roughly equal chunks
+    NOTE: Not used right now
+    '''
+    return df.sample(frac=1)
+
+
+def randomize_processed_files(files_list: List[Path],
+                              randomized_files_path: Path,
+                              chunk_row_size: int = 4096,
+                              worker: int = 0):
+    '''
+    Combines multiple .h5 together and shuffles them. After that they are split into equal sized chunks and saved. 
+    Leftover is also saved as a leftover file
     '''
 
-    if max_num_of_files == None:
-        max_num_of_files = len(fileList)
+    leftover_df: pd.DataFrame = None
+    if not os.path.exists(str(randomized_files_path)):
+        os.makedirs(str(randomized_files_path))
+    else:
+        try:
+            leftover_file = data_loader.get_files_in_directory(
+                randomized_files_path, '.leftover')[0]
+            leftover_df = data_loader.load_h5_as_df(leftover_file, True)
+        except:
+            pass
 
-    # size_of_files = sum(os.path.getsize(f) for f in os.listdir('.') if os.path.isfile(f))
-    df = data_loader.load_h5_as_df(fileList[0], True)
     # Ticks are dropped, because they are not needed anymore
+    df = data_loader.load_h5_as_df(files_list[0], True)
 
-    if max_num_of_files > 0:
-        for file in fileList[1:max_num_of_files]:
+    if len(files_list) > 1:
+        for file in files_list[1:]:
             new_df = data_loader.load_h5_as_df(file, True)
-            df = pd.concat(df, new_df)
+            df = pd.concat([df, new_df])
 
-    df = df.sample(frac=1)  # Shuffling #TODO maybe sklearn shuffle?
+    df = df.sample(frac=1)
 
+    last_chunk_df: pd.DataFrame
     df_length = len(df)
 
-    last_chunk_df = None
-    # Split dataframe into roughly equal parts (based on row count) and then save them to directory
-    for i in range(0, df_length, chunk_row_size):
-        last_chunk_df = df[i: min(df_length - 1, i + chunk_row_size)]
+    # Split shuffled data into smaller chunks
+    for counter, start_index in enumerate(range(0, df_length, chunk_row_size)):
+        end_index = min(df_length, start_index + chunk_row_size)
+        last_chunk_df = df.iloc[start_index:end_index]
 
-    df.to_hdf(str(randomized_files_path / 'random.h5'), key='df', mode='w')  # TODO Split into chunks!
+        normal_chunk_file_name = f"data_chunk_{worker}_{counter}.h5"
+
+        if (len(last_chunk_df) >= chunk_row_size):
+            '''
+            If enough data for a full chunk
+            '''
+            last_chunk_df.to_hdf(str(randomized_files_path /
+                                     normal_chunk_file_name),
+                                 key='df',
+                                 mode='w')
+        else:
+
+            if (leftover_df is not None):
+                last_chunk_df = pd.concat([leftover_df, last_chunk_df])
+
+            if (len(last_chunk_df) > chunk_row_size):
+                # Save new chunk as normal chunk, cutoff at length of normal chunk. Rest is leftover
+                (last_chunk_df.iloc[:min(len(last_chunk_df), chunk_row_size)]
+                 ).to_hdf(str(randomized_files_path / normal_chunk_file_name),
+                          key='df',
+                          mode='w')
+                # Save rest as leftover
+                (last_chunk_df.iloc[chunk_row_size:]).to_hdf(str(
+                    randomized_files_path / f"leftover.h5.leftover"),
+                                                             key='df',
+                                                             mode='w')
+            else:
+                # Save last chunk as leftover
+                last_chunk_df.to_hdf(str(randomized_files_path /
+                                         f"leftover.h5.leftover"),
+                                     key='df',
+                                     mode='w')
+
+
+if __name__ == "__main__":
+    #randomize_processed_files(["parsed_files/vitality-vs-sprout-m1-overpass.h5"],Path("./randomized_files/"))
+    pass
