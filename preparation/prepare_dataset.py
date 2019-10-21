@@ -19,10 +19,13 @@ sys.path.append(Path.cwd().parent)
 sys.path.append(Path.cwd())
 
 
-def generate_dataset_file_partitions(files_path: Path, split_percentages=[0.5, 0.25, 0.25]):
+def generate_dataset_file_partitions(files_path: Path,
+                                     split_percentages=[0.5, 0.25, 0.25]):
 
-    if(sum(split_percentages) != 1):
-        print("Percentages do not add up to 100%. Now using >> 0.5 | 0.25 | 0.25 << split")
+    if (sum(split_percentages) != 1):
+        print(
+            "Percentages do not add up to 100%. Now using >> 0.5 | 0.25 | 0.25 << split"
+        )
         split_percentages = [0.5, 0.25, 0.25]
 
     # Shuffle list of all .h5 files in the raw data directory
@@ -32,17 +35,33 @@ def generate_dataset_file_partitions(files_path: Path, split_percentages=[0.5, 0
     return raw_data_file_list
 
 
+def generate_multiprocess_arguments(args_dict: dict, num_workers: int):
+    '''
+    Generate arguments list for pool.map where only worker_id changes for each pool
+    '''
+
+    mp_args: []
+
+    for worker_id in range(num_workers):
+        new_dict = args_dict
+        new_dict.update(worker_id=worker_id)
+        mp_args.append(list(new_dict.values()))
+
+    return mp_args
+
+
 def parse_data(demo_files_path: Path, parsed_csv_files_path: Path):
 
     num_failed_parse = 0
 
-    print("Starting to parse demo files in folder: '" +
-          str(demo_files_path) + "'" + " with verbosity " + str(args.verbose))
+    print("Starting to parse demo files in folder: '" + str(demo_files_path) +
+          "'" + " with verbosity " + str(args.verbose))
     start_time_parse = time.process_time()
 
     # Get list of demo files in dictionary
     # Parse each demo file in demo_files_path
-    files_paths = data_loader.get_files_in_dictionary(Path(demo_files_path), '.dem')
+    files_paths = data_loader.get_files_in_dictionary(Path(demo_files_path),
+                                                      '.dem')
     for file_path in files_paths:
 
         # Just to be sure
@@ -52,11 +71,14 @@ def parse_data(demo_files_path: Path, parsed_csv_files_path: Path):
 
         #Platform dependant NOTE:
         shell_bool = False
-        if(platform.system() == 'windows'): shell_bool = True
+        if (platform.system() == 'windows'): shell_bool = True
 
         # Use parsing.js to parse demo
-        completedProcess = subprocess.run(['nodejs', parsing_script_location,
-                                           csv_file, target_dir, str(args.verbose)], shell=shell_bool)
+        completedProcess = subprocess.run([
+            'nodejs', parsing_script_location, csv_file, target_dir,
+            str(args.verbose)
+        ],
+                                          shell=shell_bool)
 
         if (completedProcess.returncode == 1):
             num_failed_parse += 1
@@ -70,7 +92,9 @@ def parse_data(demo_files_path: Path, parsed_csv_files_path: Path):
     print("Parsing took >>" + str(elapsed_time_parse) + " seconds<<")
 
 
-def preprocess_data(parsed_csv_files_path: Path, processed_files_path: Path, delete_old_csv: bool=False):
+def preprocess_data(parsed_csv_files_path: Path,
+                    processed_files_path: Path,
+                    delete_old_csv: bool = False):
     '''
     Processes data from matches in .csv files to .h5 files that contain all nessecary features for training
 
@@ -95,7 +119,8 @@ def preprocess_data(parsed_csv_files_path: Path, processed_files_path: Path, del
         except:
             print("Couldn't save to dataframe...")
         else:
-            if (delete_old_csv): os.remove(str(parsed_csv_file))  
+            if (delete_old_csv): os.remove(str(parsed_csv_file))
+
 
 def randomize_data():
     pass
@@ -118,17 +143,30 @@ if __name__ == '__main__':
     # preprocess_data(Path.cwd() / 'parsed_files', Path.cwd() / 'parsed_files')
     # Construct the argument parser
     ap = argparse.ArgumentParser(
-        description="Script for preparing CSGO demo file dataset for machine learning \nConfig files must be present in './config/'")
+        description=
+        "Script for preparing CSGO demo file dataset for machine learning \nConfig files must be present in './config/'"
+    )
 
-    ap.add_argument("-config", type=str,
-                    help="Path of config to use, default if not specified", required=False)
-    ap.add_argument("-mode", "-m", required=False, choices=('all', 'parse', 'preprocess', 'randomize'), default='all', type=str,
+    ap.add_argument("-config",
+                    type=str,
+                    help="Path of config to use, default if not specified",
+                    required=False)
+    ap.add_argument("-mode",
+                    "-m",
+                    required=False,
+                    choices=('all', 'parse', 'preprocess', 'randomize'),
+                    default='all',
+                    type=str,
                     help="Mode of preparation")
     # Option to delete old files that are generated in the in-between steps of preparation (.csv, .h5)
-    ap.add_argument("-deleteold", required=False,
+    ap.add_argument("-deleteold",
+                    required=False,
                     help="Verbosity intensity | Only 2 tiers")
     # Adjust verbosity level from 0 to 4 -v ... -vvvv
-    ap.add_argument("-verbose", "-v", required=False, action='count',
+    ap.add_argument("-verbose",
+                    "-v",
+                    required=False,
+                    action='count',
                     help="Verbosity intensity | Only 2 tiers")
 
     args = ap.parse_args()
@@ -161,5 +199,5 @@ if __name__ == '__main__':
     end_time_all = time.process_time()
 
     elapsed_time_all = end_time_all - start_time_all
-    print("Preparation process in mode " +
-          args.mode + " took >>" + str(elapsed_time_all) + " seconds<<")
+    print("Preparation process in mode " + args.mode + " took >>" +
+          str(elapsed_time_all) + " seconds<<")

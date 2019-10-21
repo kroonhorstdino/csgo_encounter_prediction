@@ -18,7 +18,10 @@ sys.path.append(Path.cwd().parent)
 sys.path.append(Path.cwd())
 
 
-def add_die_within_sec_labels(df: pd.DataFrame, time_window_to_next_death: int = 5, demo_tickrate: int = 128, parsing_tickrate: int = 8) -> pd.DataFrame:
+def add_die_within_sec_labels(df: pd.DataFrame,
+                              time_window_to_next_death: int = 5,
+                              demo_tickrate: int = 128,
+                              parsing_tickrate: int = 8) -> pd.DataFrame:
     '''
     Adds labels that contain time to next death within x next seconds to the dataframe
 
@@ -28,7 +31,8 @@ def add_die_within_sec_labels(df: pd.DataFrame, time_window_to_next_death: int =
     '''
 
     print("Adding 'dies within x seconds' labels for a " +
-          str(time_window_to_next_death) + " second time window to dataframe...")
+          str(time_window_to_next_death) +
+          " second time window to dataframe...")
 
     # How many rows in the future have to be considered for labeling
     max_rows_in_future = parsing_tickrate * time_window_to_next_death
@@ -55,7 +59,8 @@ def add_die_within_sec_labels(df: pd.DataFrame, time_window_to_next_death: int =
 
         # Go through all rows of this player. Will not set states at end of rounds or at end of segments with discarded ticks, because not future data is available
         # TODO Use death times in the future
-        for currentTick, deathState_row in isAlive_column.items():  # TODO deathState_row wird nicht benutzt
+        for currentTick, deathState_row in isAlive_column.items(
+        ):  # TODO deathState_row wird nicht benutzt
             past_tick = (currentTick - max_ticks_in_future)
 
             if past_tick in df.index:  # Past tick may have been discarded during parsing
@@ -71,22 +76,27 @@ def add_die_within_sec_labels(df: pd.DataFrame, time_window_to_next_death: int =
         time_window_to_next_death=time_window_to_next_death)
 
     # Add deathState lists into df as columns for each player
-    for player_i, label_deathState_column_list in enumerate(label_deathState_column_lists):
+    for player_i, label_deathState_column_list in enumerate(
+            label_deathState_column_lists):
         # TODO
         # new_column_name = f'l_{player_i}_die_within_in_{max_time_to_next_death}_seconds'
 
-        df[new_column_names[player_i]
-           ] = label_deathState_column_list.astype(np.float32)
+        df[new_column_names[player_i]] = label_deathState_column_list.astype(
+            np.float32)
 
         # print(df.head(20))
 
     return df
 
-def undersample_pure_not_die_ticks(df : pd.DataFrame, death_time_window: int=5, removal_frac: float=0.5) -> pd.DataFrame:
+
+def undersample_pure_not_die_ticks(df: pd.DataFrame,
+                                   death_time_window: int = 5,
+                                   removal_frac: float = 0.5) -> pd.DataFrame:
     '''
         Remove a certain amount of ticks, which will not experience a death in the next x seconds
     '''
     return df
+
 
 # TODO: Do one hot encoding for weapons
 

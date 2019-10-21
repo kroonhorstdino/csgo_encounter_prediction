@@ -34,7 +34,6 @@ import matplotlib.animation as animation
 # in case it is called from a different location
 sys.path.append(Path.cwd())
 sys.path.append(Path.cwd() / 'preparation')
-
 '''
 class CounterStrikeDatasetSimple(Dataset):
     def __init__(self, filePath):
@@ -55,9 +54,11 @@ class CounterStrikeDatasetSimple(Dataset):
 class CounterStrikeDataset(Dataset):
     def __init__(self, p_config, t_config, isValidationSet=False):
         if (not isValidationSet):
-            self.dataset_files = data_loader.get_files_in_dictionary(p_config["paths"]["training_files_path"], '.h5')            
+            self.dataset_files = data_loader.get_files_in_dictionary(
+                p_config["paths"]["training_files_path"], '.h5')
         else:
-            self.dataset_files = data_loader.get_files_in_dictionary(p_config["paths"]["training_files_path"], '.h5')
+            self.dataset_files = data_loader.get_files_in_dictionary(
+                p_config["paths"]["training_files_path"], '.h5')
 
         self.batch_row_size = t_config["batch_size"]
 
@@ -65,48 +66,53 @@ class CounterStrikeDataset(Dataset):
         # Num of rows for each chunk
         self.chunks_row_size = p_config["randomization"]["chunk_row_size"]
         # Num of batches in the entire dataset
-        self.num_batches = int((self.num_chunks * self.chunks_row_size) / self.batch_row_size)
+        self.num_batches = int(
+            (self.num_chunks * self.chunks_row_size) / self.batch_row_size)
         # Amount of batches divided by num of files is num of batches per chunk
         self.batches_per_chunk = int(self.num_batches / self.num_chunks)
 
         self.num_epoch = t_config["num_epoch"]
 
-        self.num_players = 10 #NOTE: Maybe there will be wingmen matches in the faaar future             
+        self.num_players = 10  #NOTE: Maybe there will be wingmen matches in the faaar future
         self.death_time_window = p_config["preprocessing"]["death_time_window"]
 
-        self.num_all_player_features = data_loader.get_num_player_features(data_loader.load_h5_as_df(self.dataset_files[0],False).columns)
+        self.num_all_player_features = data_loader.get_num_player_features(
+            data_loader.load_h5_as_df(self.dataset_files[0], False).columns)
 
     def __getitem__(self, index):
 
         player_i = random.randrange(0, 10)
-        
-        chosen_file = self.dataset_files[self.batch_index_to_chunk_index(index)]
+
+        chosen_file = self.dataset_files[self.batch_index_to_chunk_index(
+            index)]
         #start_index, end_index = self.get_indicies_in_chunk(index)
-        chunk = data_loader.load_h5_as_df(chosen_file, True) 
+        chunk = data_loader.load_h5_as_df(chosen_file, True)
         #.iloc[start_index:end_index] A batch is going to be loaded from this chunk >batches_per_chunk< times anyways. If random, may be not so bad NOTE: FIXME:
 
-        player_features, classification_labels = data_loader.get_minibatch_balanced_player(chunk, player_i, batch_size=self.batch_row_size)
+        player_features, classification_labels = data_loader.get_minibatch_balanced_player(
+            chunk, player_i, batch_size=self.batch_row_size)
 
         return player_features, classification_labels, player_i
 
-    def batch_index_to_chunk_index(self, batch_index : int) -> int:
+    def batch_index_to_chunk_index(self, batch_index: int) -> int:
         '''
             In what file/chunk is this batch
         '''
         return int(batch_index / self.batches_per_chunk)
 
-    def get_indicies_in_chunk(self, batch_index) -> Tuple[int,int]:
+    def get_indicies_in_chunk(self, batch_index) -> Tuple[int, int]:
         batch_in_chunk = batch_index % self.batches_per_chunk
 
         start_index_in_chunk = batch_in_chunk * self.batch_row_size
-        end_index_in_chunk = start_index_in_chunk + self.batch_row_size #End index in selecting is exclusive in pandas
-        
-        return start_index_in_chunk, end_index_in_chunk 
+        end_index_in_chunk = start_index_in_chunk + self.batch_row_size  #End index in selecting is exclusive in pandas
+
+        return start_index_in_chunk, end_index_in_chunk
 
     def __len__(self):
-        return self.batches_per_chunk * self.num_chunks 
+        return self.batches_per_chunk * self.num_chunks
 
-def train_csgo(prep_config_path : Path, train_config_path : Path):
+
+def train_csgo(prep_config_path: Path, train_config_path: Path):
 
     train_config = data_loader.load_config(train_config_path)
     prep_config = data_loader.load_config(prep_config_path)
@@ -119,14 +125,17 @@ def train_csgo(prep_config_path : Path, train_config_path : Path):
 
     # the dataset returns a batch when called (because we get the whole batch from one file), the batch size of the data loader thus is set to 1 (default)
     # epoch size is how many elements the iterator of the generator will provide, NOTE should not be too small, because it have a significant overhead p=0.05
-    training_set = CounterStrikeDataset(prep_config, train_config, isValidationSet=False)
-    training_generator = torch.utils.data.DataLoader(
-        training_set, shuffle=True)
+    training_set = CounterStrikeDataset(prep_config,
+                                        train_config,
+                                        isValidationSet=False)
+    training_generator = torch.utils.data.DataLoader(training_set,
+                                                     shuffle=True)
 
     print("Batches per epoch: " + str(training_set.__len__()))
 
     model = models.SharedWeightsCSGO(
-        num_all_player_features=training_set.num_all_player_features , num_labels=10)
+        num_all_player_features=training_set.num_all_player_features,
+        num_labels=10)
 
     model.to(device)
 
@@ -152,7 +161,8 @@ def train_csgo(prep_config_path : Path, train_config_path : Path):
 
         now = time.time()
 
-        np.random.seed()  # reset seed   https://github.com/pytorch/pytorch/issues/5059  data loader returns the same values
+        np.random.seed(
+        )  # reset seed   https://github.com/pytorch/pytorch/issues/5059  data loader returns the same values
 
         epoch_overall_loss = []
         epoch_overall_accuracy = []
@@ -198,15 +208,15 @@ def train_csgo(prep_config_path : Path, train_config_path : Path):
                 y > 0.5)).cpu().numpy().astype(np.float32)
 
             target_accuracy = ((output[:, player_i] > 0.5) == (
-                y[:, player_i] > 0.5)).cpu().numpy().reshape(-1).astype(np.float32)
+                y[:, player_i] > 0.5)).cpu().numpy().reshape(-1).astype(
+                    np.float32)
 
-            die_accuracy_vec = ((output > 0.5) == (
-                y > 0.5)).view(-1)[y.view(-1) > 0.5].cpu().numpy().reshape(-1).astype(np.float32)
-            not_die_accuracy_vec = ((output > 0.5) == (
-                y > 0.5)).view(-1)[y.view(-1) < 0.5].cpu().numpy().reshape(-1).astype(np.float32)
+            die_accuracy_vec = ((output > 0.5) == (y > 0.5)).view(-1)[
+                y.view(-1) > 0.5].cpu().numpy().reshape(-1).astype(np.float32)
+            not_die_accuracy_vec = ((output > 0.5) == (y > 0.5)).view(-1)[
+                y.view(-1) < 0.5].cpu().numpy().reshape(-1).astype(np.float32)
 
-            epoch_overall_accuracy.append(
-                accuracy_values.reshape(-1).mean())
+            epoch_overall_accuracy.append(accuracy_values.reshape(-1).mean())
             epoch_target_accuracy.append(target_accuracy.mean())
 
             # these have varying size, so calculating the proper mean across batches takes more work
@@ -215,7 +225,6 @@ def train_csgo(prep_config_path : Path, train_config_path : Path):
 
             # TODO #death_times = death_times.cpu().numpy()
             # death_times[death_times < 0] = 1000.0 # make invalid death times a large number
-
             '''for timeslot_i in range(19):
                     mask_die_in_timeslot = np.logical_and((death_times > timeslot_i), (death_times < (timeslot_i+1)))
                     epoch_per_sec_accuracies[timeslot_i].extend(
@@ -232,8 +241,9 @@ def train_csgo(prep_config_path : Path, train_config_path : Path):
                 '''
 
             if batch_i > 0 and (batch_i % 50) == 0:
-                print(epoch_i, " ", batch_i, " loss: ", np.array(
-                    epoch_overall_loss[-49:]).mean(), " accuracy: ", np.array(epoch_target_accuracy[-49:]).mean())
+                print(epoch_i, " ", batch_i, " loss: ",
+                      np.array(epoch_overall_loss[-49:]).mean(), " accuracy: ",
+                      np.array(epoch_target_accuracy[-49:]).mean())
                 # for timeslot_i in range(19):
                 #    print("epoch_per_sec_predictions  ",len(epoch_per_sec_predictions[timeslot_i]))
 
@@ -246,12 +256,12 @@ def train_csgo(prep_config_path : Path, train_config_path : Path):
                     np.array(epoch_per_sec_predictions))
 
         all_train_losses.append(np.array(epoch_overall_loss).mean())
-        all_train_accuracies.append(
-            np.array(epoch_overall_accuracy).mean())
+        all_train_accuracies.append(np.array(epoch_overall_accuracy).mean())
         all_train_target_accuracies.append(
             np.array(epoch_target_accuracy).mean())
         all_train_die_notdie_accuracies.append(
-            (np.array(die_accuracy_vec).mean(), np.array(not_die_accuracy_vec).mean()))
+            (np.array(die_accuracy_vec).mean(),
+             np.array(not_die_accuracy_vec).mean()))
 
         for timeslot_i in range(20):
             all_train_per_sec_accuracies[timeslot_i].append(
@@ -261,9 +271,10 @@ def train_csgo(prep_config_path : Path, train_config_path : Path):
             all_train_per_sec_predictions_std[timeslot_i].append(
                 np.array(epoch_per_sec_predictions[timeslot_i]).std())
 
-        print("Epoch done ", epoch_i, " loss: ", np.array(epoch_overall_loss).mean(
-        ), " accuracy: ", np.array(epoch_target_accuracy).mean())
-        print("Epoch took: ", time.time()-now)
+        print("Epoch done ", epoch_i, " loss: ",
+              np.array(epoch_overall_loss).mean(), " accuracy: ",
+              np.array(epoch_target_accuracy).mean())
+        print("Epoch took: ", time.time() - now)
         sys.stdout.flush()
 
         if (epoch_i % 10) == 9:
@@ -277,4 +288,4 @@ def train_csgo(prep_config_path : Path, train_config_path : Path):
 
 
 if __name__ == "__main__":
-    train_csgo('config/prep_config.json','config/train_config.json')
+    train_csgo('config/prep_config.json', 'config/train_config.json')

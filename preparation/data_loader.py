@@ -6,7 +6,6 @@ import json
 
 from pathlib import Path
 from typing import Tuple, List
-
 '''
 import torch
 import torch.nn as nn
@@ -19,7 +18,11 @@ sys.path.append(Path.cwd().parent)
 sys.path.append(Path.cwd())
 
 
-def get_minibatch_balanced_player(data: pd.DataFrame, player_i, batch_size=128, max_time_to_next_death=5) -> Tuple[List[np.ndarray], pd.DataFrame]:
+def get_minibatch_balanced_player(data: pd.DataFrame,
+                                  player_i,
+                                  batch_size=128,
+                                  max_time_to_next_death=5
+                                  ) -> Tuple[List[np.ndarray], pd.DataFrame]:
     '''
         Returns a minibatch that is balanced for a specific player.
 
@@ -54,10 +57,13 @@ def get_minibatch_balanced_player(data: pd.DataFrame, player_i, batch_size=128, 
     return split_data_into_minibatch(data_batch, max_time_to_next_death)
 
 
-def get_player_minibatch_mask(data: pd.DataFrame, player_i: int, max_time_to_next_death: int = 5, is_binary=True):
+def get_player_minibatch_mask(data: pd.DataFrame,
+                              player_i: int,
+                              max_time_to_next_death: int = 5,
+                              is_binary=True):
 
-    classification_clmn_name = get_die_within_seconds_column_names(10)[
-        player_i]
+    classification_clmn_name = get_die_within_seconds_column_names(
+        10)[player_i]
     isAlive_clmn_name = get_isAlive_column_names(10)[player_i]
 
     isAlive_mask = data[isAlive_clmn_name] == 1
@@ -72,7 +78,9 @@ def get_player_minibatch_mask(data: pd.DataFrame, player_i: int, max_time_to_nex
     return player_die_mask, player_not_die_mask
 
 
-def split_data_into_minibatch(df: pd.DataFrame, max_time_to_next_death: int = 5) -> Tuple[List[pd.DataFrame], pd.DataFrame]:
+def split_data_into_minibatch(df: pd.DataFrame,
+                              max_time_to_next_death: int = 5
+                              ) -> Tuple[List[pd.DataFrame], pd.DataFrame]:
     """
     Returns batch with input features and classification labels
     Samples of players are separated in a list
@@ -87,7 +95,8 @@ def split_data_into_minibatch(df: pd.DataFrame, max_time_to_next_death: int = 5)
 
     return player_features, classification_labels
 
-def get_player_features_array(df : pd.DataFrame) -> List[pd.DataFrame]:
+
+def get_player_features_array(df: pd.DataFrame) -> List[pd.DataFrame]:
     '''
     Separate player features into Dataframes from each player as a list
     '''
@@ -99,6 +108,7 @@ def get_player_features_array(df : pd.DataFrame) -> List[pd.DataFrame]:
 
     return player_features
 
+
 def get_isAlive_column_names(num_players: int = 10) -> List[str]:
 
     column_names = []
@@ -109,7 +119,9 @@ def get_isAlive_column_names(num_players: int = 10) -> List[str]:
     return column_names
 
 
-def get_die_within_seconds_column_names(num_players=10, time_window_to_next_death=5) -> List[str]:
+def get_die_within_seconds_column_names(num_players=10,
+                                        time_window_to_next_death=5
+                                        ) -> List[str]:
     """
     Gets exact names for deathState classification columns
     """
@@ -122,14 +134,16 @@ def get_die_within_seconds_column_names(num_players=10, time_window_to_next_deat
 
     return actual_column_names
 
+
 def get_num_player_features(column_labels: List[str]):
-    def filter_features(feature_label : str):
+    def filter_features(feature_label: str):
         return feature_label.startswith('f_')
 
     return len(list(filter(filter_features, column_labels.values)))
 
 
-def get_files_in_dictionary(files_path: Path, file_extension: str) -> List[Path]:
+def get_files_in_dictionary(files_path: Path,
+                            file_extension: str) -> List[Path]:
     '''
     Get all files in specified directory with matching extension
     '''
@@ -168,8 +182,9 @@ def load_h5_as_df(filePath: Path, drop_ticks: bool) -> pd.DataFrame:
     df.fillna(0.0, inplace=True)
 
     return df
-    
-def load_config(config_path : Path) -> dict:
+
+
+def load_config(config_path: Path) -> dict:
     config = None
     try:
 
