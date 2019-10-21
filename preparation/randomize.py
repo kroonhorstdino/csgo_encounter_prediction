@@ -74,7 +74,6 @@ def randomize_processed_files(files_list: List[Path],
                                  key='df',
                                  mode='w')
         else:
-
             if (leftover_df is not None):
                 last_chunk_df = pd.concat([leftover_df, last_chunk_df])
 

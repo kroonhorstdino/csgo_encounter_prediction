@@ -104,6 +104,10 @@ class CounterStrikeDataset(Dataset):
         return self.batches_per_chunk * self.num_chunks
 
 
+def is_validation_epoch(epoch_i: int):
+    pass
+
+
 def train_csgo(dataset_config_path: Path, train_config_path: Path):
 
     print("Start training...")
@@ -129,9 +133,9 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
     validation_set = CounterStrikeDataset(dataset_config,
                                           train_config,
                                           isValidationSet=True)
-    training_generator = torch.utils.data.DataLoader(validation_set,
-                                                     batch_size=1,
-                                                     shuffle=True)
+    validation_generator = torch.utils.data.DataLoader(validation_set,
+                                                       batch_size=1,
+                                                       shuffle=True)
 
     print("(Mini-)batches per epoch: " + str(training_set.__len__()))
 
@@ -141,7 +145,7 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
 
     model.to(device)
 
-    criterion = nn.CrossEntropyLoss()
+    #criterion = nn.CrossEntropyLoss()
     binary_classification_loss = torch.nn.BCELoss()
     optimizer = OptimizerType(model.parameters(),
                               lr=train_config["training"]["lr"])
@@ -159,13 +163,18 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
 
     all_validation_roc_scores = []
     all_validation_pr_scores = []
+    '''
+        #####
+        NOTE: TRAINING LOOP
+        #####
+    '''
 
     for epoch_i in range(training_set.num_epoch):
 
         now = time.time()
 
-        np.random.seed(
-        )  # reset seed   https://github.com/pytorch/pytorch/issues/5059  data loader returns the same values
+        # reset seed   https://github.com/pytorch/pytorch/issues/5059  data loader returns the same values
+        np.random.seed()
 
         epoch_overall_loss = []
         epoch_overall_accuracy = []
@@ -199,17 +208,20 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
             player_i_output = output[:, player_i]
             player_i_labels = y[:, player_i]
 
-            loss = binary_classification_loss(player_i_output, player_i_labels)
+            # Calculate loss only for the output of one player
+            batch_player_loss = binary_classification_loss(
+                player_i_output, player_i_labels)
 
-            loss.backward()
+            batch_player_loss.backward()
             optimizer.step()
 
-            overall_loss = binary_classification_loss(
+            batch_overall_loss = binary_classification_loss(
                 output, y).cpu().detach().numpy()
-            epoch_overall_loss.append(overall_loss.reshape(-1).mean())
+            epoch_overall_loss.append(batch_overall_loss.reshape(-1).mean())
+
+            # Acc values for all players and for targeted player
             accuracy_values = ((output > 0.5) == (
                 y > 0.5)).cpu().numpy().astype(np.float32)
-
             target_accuracy = ((output[:, player_i] > 0.5) == (
                 y[:, player_i] > 0.5)).cpu().numpy().reshape(-1).astype(
                     np.float32)
@@ -225,34 +237,44 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
             # these have varying size, so calculating the proper mean across batches takes more work
             epoch_die_accuracy.extend(die_accuracy_vec)
             epoch_not_die_accuracy.extend(not_die_accuracy_vec)
-
-            # TODO #death_times = death_times.cpu().numpy()
-            # death_times[death_times < 0] = 1000.0 # make invalid death times a large number
-            '''for timeslot_i in range(19):
-                    mask_die_in_timeslot = np.logical_and((death_times > timeslot_i), (death_times < (timeslot_i+1)))
-                    epoch_per_sec_accuracies[timeslot_i].extend(
-                        accuracy_values[mask_die_in_timeslot].reshape(-1))
-                    epoch_per_sec_predictions[timeslot_i].extend(
-                        output_np[mask_die_in_timeslot].reshape(-1))
+            '''
+            TODO: For continouus death labels
+            for timeslot_i in range(19):
+	            mask_die_in_timeslot = np.logical_and( (death_times > timeslot_i), (death_times < (timeslot_i+1)))
+                epoch_per_sec_accuracies[timeslot_i].extend(accuracy_values[mask_die_in_timeslot].reshape(-1))
+                epoch_per_sec_predictions[timeslot_i].extend(output_np[mask_die_in_timeslot].reshape(-1))
 
                 # and the rest
                 mask_die_in_timeslot = (death_times > 19)
-                epoch_per_sec_accuracies[19].extend(
-                    accuracy_values[mask_die_in_timeslot].reshape(-1))
-                epoch_per_sec_predictions[19].extend(
-                    output_np[mask_die_in_timeslot].reshape(-1))
-                '''
+                epoch_per_sec_accuracies[19].extend(accuracy_values[mask_die_in_timeslot].reshape(-1))
+                epoch_per_sec_predictions[19].extend(output_np[mask_die_in_timeslot].reshape(-1))
+
+
+                if batch_i > 0 and (batch_i % 50) == 0:
+                    print(epoch_i," ",batch_i," loss: ",np.array(epoch_overall_loss[-49:]).mean()," accuracy: ",np.array(epoch_target_accuracy[-49:]).mean())
+                    #for timeslot_i in range(19):
+                    #    print("epoch_per_sec_predictions  ",len(epoch_per_sec_predictions[timeslot_i]))
+                    
+                    #print("die accuracy: ",np.array(epoch_die_accuracy[-49:]).mean())
+                    #print("not_die accuracy: ",np.array(epoch_not_die_accuracy[-49:]).mean())
+                    sys.stdout.flush()
+            '''
 
             if batch_i > 0 and (batch_i % 50) == 0:
                 print(epoch_i, " ", batch_i, " loss: ",
                       np.array(epoch_overall_loss[-49:]).mean(), " accuracy: ",
                       np.array(epoch_target_accuracy[-49:]).mean())
-                # for timeslot_i in range(19):
-                #    print("epoch_per_sec_predictions  ",len(epoch_per_sec_predictions[timeslot_i]))
 
-                # print("die accuracy: ",np.array(epoch_die_accuracy[-49:]).mean())
-                # print("not_die accuracy: ",np.array(epoch_not_die_accuracy[-49:]).mean())
+                print("die accuracy: ",
+                      np.array(epoch_die_accuracy[-49:]).mean())
+                print("not_die accuracy: ",
+                      np.array(epoch_not_die_accuracy[-49:]).mean())
                 sys.stdout.flush()
+        '''
+            #####
+            NOTE: EPOCH FINISHED
+            #####
+        '''
 
         if (epoch_i % 10) == 9:
             np.save('epoch_per_sec_predictions.npy',
@@ -265,6 +287,8 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
         all_train_die_notdie_accuracies.append(
             (np.array(die_accuracy_vec).mean(),
              np.array(not_die_accuracy_vec).mean()))
+        '''
+        TODO: For continoos death labels
 
         for timeslot_i in range(20):
             all_train_per_sec_accuracies[timeslot_i].append(
@@ -273,6 +297,44 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
                 np.array(epoch_per_sec_predictions[timeslot_i]).mean())
             all_train_per_sec_predictions_std[timeslot_i].append(
                 np.array(epoch_per_sec_predictions[timeslot_i]).std())
+        '''
+        '''
+            #####
+            NOTE: VALIDATION EPOCH
+            #####
+        '''
+
+        if (is_validation_epoch(epoch_i)):
+            epoch_overall_loss = []
+            epoch_overall_accuracy = []
+
+            epoch_all_pred = []
+            epoch_all_y = []
+
+            with torch.no_grad():
+                for X, y, player_i in validation_generator:
+                    X = [(hero_X[0, :]).to(device) for hero_X in X]
+                    y = (y[0, :]).to(device)
+
+                    output = model(X)
+                    output = torch.sigmoid(output)
+                    output_np = output.cpu().detach().numpy()
+
+                    epoch_overall_loss.append(
+                        binary_classification_loss(
+                            output,
+                            y).cpu().detach().numpy().reshape(-1).mean())
+                    accuracy_vec = ((output > 0.5) == (
+                        y > 0.5)).cpu().numpy().reshape(-1).astype(np.float32)
+                    epoch_overall_accuracy.append(accuracy_vec.mean())
+
+                    epoch_all_pred.extend(output_np.reshape(-1))
+                    epoch_all_y.extend(y.cpu().numpy().reshape(-1))
+        '''
+            #####
+            NOTE: VALIDATION EPOCH END
+            #####
+        '''
 
         print("Epoch done ", epoch_i, " loss: ",
               np.array(epoch_overall_loss).mean(), " accuracy: ",
@@ -291,5 +353,4 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
 
 
 if __name__ == "__main__":
-    debug = True
     train_csgo('config/dataset_config.json', 'config/train_config.json')

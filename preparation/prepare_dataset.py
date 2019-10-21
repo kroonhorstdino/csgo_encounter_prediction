@@ -92,6 +92,8 @@ def preprocess_data(parsed_csv_files_list: List[Path],
         Uses parameters in config #WIP
     '''
 
+    print("Preprocessing....")
+
     for parsed_csv_file in parsed_csv_files_list:
         df = data_loader.load_csv_as_df(parsed_csv_file)
 
@@ -106,7 +108,7 @@ def preprocess_data(parsed_csv_files_list: List[Path],
             #Save to hdf and if specified, remove old csv file
             df.to_hdf(target_path, key='df', mode='w')
         except:
-            print("Couldn't save to dataframe...")
+            print("Couldn't save to dataframe... ")
         else:
             if (delete_old_csv): os.remove(str(parsed_csv_file))
 
@@ -223,19 +225,20 @@ if __name__ == '__main__':
             prepare_dataset()
         elif (args.mode == 'parse'):
             print("Only parsing...")
-            parsed_csv_files_list = data_loader.get_files_in_directory(
-                Path(config["paths"]["parsed_files_path"]), '.csv')
-            parse_data(parsed_csv_files_list,
+            demo_files_list = data_loader.get_files_in_directory(
+                Path(config["paths"]["demo_files_path"]), '.dem')
+            parse_data(demo_files_list,
                        Path(config["paths"]["parsed_files_path"]))
         elif (args.mode == 'preprocess'):
             print("Only preprocessing...")
-            processed_h5_files_list = data_loader.get_files_in_directory(
-                Path(config["paths"]["processed_files_path"]), ".h5")
-            preprocess_data(processed_h5_files_list,
+            parsed_csv_files_list = data_loader.get_files_in_directory(
+                Path(config["paths"]["parsed_files_path"]), ".csv")
+            preprocess_data(parsed_csv_files_list,
                             Path(config["paths"]["processed_files_path"]))
         elif (args.mode == 'randomize'):
-            print("Only randomizing...")
-            randomize_data(Path(config["paths"]["processed_files_path"]),
+            processed_h5_files_list = data_loader.get_files_in_directory(
+                Path(config["paths"]["processed_files_path"]), ".h5")
+            randomize_data(processed_h5_files_list,
                            Path(config["paths"]["training_files_path"]))
 
     # Time keeping TODO: Time keeping is erroneous

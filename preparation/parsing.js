@@ -632,10 +632,6 @@ class DemoFileParser {
                 id: 'currentWeapon',
                 title: 'CurrentWeapon'
             }
-            /*{
-                   id: '',
-                   title:
-               }*/
         ];
 
         /*
@@ -703,6 +699,9 @@ class DemoFileParser {
 
     /**
      * Checks if knife is a knife other than the "normal knife" (index 42)
+     * 
+     * Above index 500 only knifes
+     * index 59 is t_knife
      *
      * @param {*} weaponIndex
      * @returns {boolean}
@@ -748,23 +747,24 @@ class DemoFileParser {
     }
 
     /**
-     * Calculates distance between two values
+     * Calculates distance between two X,Y positions
      *
-     * @param {*} vecA
-     * @param {*} vecB
+     * @param {Vector} positionA
+     * @param {Vector} positionB
      * @param {boolean} useTaxicab If true, the cheaper taxicab algorithm is used.
-     * @returns
+     * @returns {Number} A distance
      * @memberof DemoFileParser
      */
-    calcVectorDistance(vecA, vecB, useTaxicab = true) {
-        //TODO Use pythagoras!
-        if (useTaxicab) {
-            let dX = Math.abs(vecA.x - vecB.x);
-            let dY = Math.abs(vecA.y - vecB.y);
-            let dZ = Math.abs(vecA.z - vecB.z);
+    calcVectorDistance(positionA, positionB) {
+        let xs = positionA.x - positionB.x,
+            ys = positionA.y - positionB.y;
 
-            return dX + dY + dZ;
-        } else {}
+        // Square values
+        xs *= xs;
+        ys *= ys;
+
+        // Pythagoras
+        return Math.sqrt(xs + ys);
     }
 }
 
@@ -784,14 +784,3 @@ if (process.argv[2] == "true") {
 
 console.log("Start parsing...");
 new DemoFileParser(demoFilePath, parsedFilePath, verbosity);
-
-/*
-try {
-    fs.unlinkSync('parsed_files\\positions.csv')
-    console.log("Deleted old file!")
-} catch (e) {
-    console.log("Do nothing!")
-}
-*/
-
-//demo.parseDemoFile(path.resolve('vitality-vs-liquid-m2-dust2.dem'))
