@@ -1,13 +1,11 @@
 {
-	"model_parameters": {
-		"lr": 0.001
+	"topography": {
+		"shared_layers": [120, 10],
+		"dense_layers": [1000, 500, 10]
 	},
-	"shared_layers": [
-		120, 10
-	],
-	"dense_layers": [
-		1000, 500, 10
-	],
-	"batch_size": 128,
-	"num_epoch": 50000
+	"training": {
+		"batch_size": 128,
+		"num_epoch": 50000,
+		"lr": 0.001
+	}
 }

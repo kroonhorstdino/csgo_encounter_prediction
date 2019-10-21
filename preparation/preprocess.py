@@ -1,18 +1,20 @@
 import numpy as np
 import pandas as pd
 
-import sys
-import os
-from pathlib import Path
-from typing import List
-
-import data_loader
-
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import torch.nn.functional as F
 from torch.utils.data.dataset import Dataset
+
+import sys
+import os
+from pathlib import Path
+from typing import List
+
+sys.path.insert(0, str(Path.cwd() / 'preparation/'))
+
+import data_loader
 
 sys.path.append(Path.cwd().parent)
 sys.path.append(Path.cwd())
@@ -50,17 +52,18 @@ def add_die_within_sec_labels(df: pd.DataFrame,
     # Go through each player and set die_within labels for entire column
     for player_i, player_isAlive_column_name in enumerate(isAlive_colum_names):
         # Get isAlive column for player
-        isAlive_column = isAlive_columns[player_isAlive_column_name]
+        isAlive_column_where_dead = isAlive_columns[player_isAlive_column_name]
         # Only choose entries where player is dead
-        isAlive_column = isAlive_column[isAlive_column == 0]
+        isAlive_column_where_dead = isAlive_column_where_dead[
+            isAlive_column_where_dead == 0]
 
         # Fill list with zeroes, because players won't be dead most of the time
         label_deathState_column_list = np.full(df.index.size, 0)
 
-        # Go through all rows of this player. Will not set states at end of rounds or at end of segments with discarded ticks, because not future data is available
-        # TODO Use death times in the future
-        for currentTick, deathState_row in isAlive_column.items(
-        ):  # TODO deathState_row wird nicht benutzt
+        # Go through all rows of this player. Will not set states at end of rounds or at end of segments with discarded ticks,
+        # because no further future data is available
+        # All rows here are ones where the player is already dead!
+        for currentTick, isDead_row in isAlive_column_where_dead.items():
             past_tick = (currentTick - max_ticks_in_future)
 
             if past_tick in df.index:  # Past tick may have been discarded during parsing
@@ -68,7 +71,13 @@ def add_die_within_sec_labels(df: pd.DataFrame,
                 index_location = df.index.get_loc(past_tick)
                 # debug_test_sample = df.iloc[int(index_location)]
 
-                label_deathState_column_list[index_location] = 1
+                #TODO: Test new labelling!
+                #If player is already dead in past tick
+                if (df[player_isAlive_column_name].loc[past_tick] == 0):
+                    label_deathState_column_list[index_location] = 2
+                # When player is not yet dead in the past tick
+                else:
+                    label_deathState_column_list[index_location] = 1
 
         label_deathState_column_lists[player_i] = label_deathState_column_list
 
@@ -78,7 +87,7 @@ def add_die_within_sec_labels(df: pd.DataFrame,
     # Add deathState lists into df as columns for each player
     for player_i, label_deathState_column_list in enumerate(
             label_deathState_column_lists):
-        # TODO
+        # TODO:
         # new_column_name = f'l_{player_i}_die_within_in_{max_time_to_next_death}_seconds'
 
         df[new_column_names[player_i]] = label_deathState_column_list.astype(

@@ -30,3 +30,5 @@ var/
 *.h5
 *.h5.leftover
 *.csv
+*.npy
+*.model

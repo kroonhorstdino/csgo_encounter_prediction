@@ -6,6 +6,8 @@ import json
 
 from pathlib import Path
 from typing import Tuple, List
+
+import glob
 '''
 import torch
 import torch.nn as nn
@@ -22,12 +24,7 @@ def get_minibatch_balanced_player(data: pd.DataFrame,
                                   player_i,
                                   batch_size=128,
                                   max_time_to_next_death=5
-                                  ) -> Tuple[List[np.ndarray], pd.DataFrame]:
-    '''
-        Returns a minibatch that is balanced for a specific player.
-
-    Returns a minibatch which is a 50/50 (or otherwise specified) split between samples where the selected player is going to die, and won't die in the next x seconds
-    '''
+                                  ) -> Tuple[List[pd.DataFrame], pd.DataFrame]:
 
     player_dies_mask, player_not_die_mask = get_player_minibatch_mask(
         data, player_i, 5)
@@ -61,6 +58,12 @@ def get_player_minibatch_mask(data: pd.DataFrame,
                               player_i: int,
                               max_time_to_next_death: int = 5,
                               is_binary=True):
+    '''
+        Death labelling:
+            0: is not dead
+            1: has died within time window,
+            2: is dead, longer than time window
+    '''
 
     classification_clmn_name = get_die_within_seconds_column_names(
         10)[player_i]
@@ -68,12 +71,13 @@ def get_player_minibatch_mask(data: pd.DataFrame,
 
     isAlive_mask = data[isAlive_clmn_name] == 1
     isDying_mask = data[classification_clmn_name] == 1
+    isLongDead_mask = data[classification_clmn_name] == 2
 
     # Instances where player is going to die, meaning being alive and dead in the future
-    player_die_mask = isAlive_mask & isDying_mask
-    # Simply inverting would leave samples where players are dead and staying dead in the next x seconds
-    # Player is alive, and is going to stay alive in the next x seconds
+    player_die_mask = isAlive_mask & isDying_mask & ~isLongDead_mask
+    # Player is alive and is either not going to die or not long dead already (last case should not be possible with correct data)
     player_not_die_mask = isAlive_mask & ~isDying_mask
+    player_not_die_mask = player_not_die_mask & ~isLongDead_mask
 
     return player_die_mask, player_not_die_mask
 
@@ -91,12 +95,12 @@ def split_data_into_minibatch(df: pd.DataFrame,
         10, max_time_to_next_death)
     classification_labels = df[classification_column_names].to_numpy()
 
-    player_features = get_player_features_array(df)
+    player_features = get_all_player_features_array(df)
 
     return player_features, classification_labels
 
 
-def get_player_features_array(df: pd.DataFrame) -> List[pd.DataFrame]:
+def get_all_player_features_array(df: pd.DataFrame) -> List[pd.DataFrame]:
     '''
     Separate player features into Dataframes from each player as a list
     '''
@@ -142,12 +146,14 @@ def get_num_player_features(column_labels: List[str]):
     return len(list(filter(filter_features, column_labels.values)))
 
 
-def get_files_in_dictionary(files_path: Path,
-                            file_extension: str) -> List[Path]:
+def get_files_in_directory(files_path: Path,
+                           file_extension: str) -> List[Path]:
     '''
     Get all files in specified directory with matching extension
     '''
-    return list(Path(files_path).glob('*' + file_extension))
+    glob_ext = f'*{file_extension}'
+    files_list = list(Path(files_path).glob(glob_ext))
+    return list(files_list)
 
 
 def load_csv_as_df(filePath: Path) -> pd.DataFrame:
@@ -173,7 +179,9 @@ def load_h5_as_df(filePath: Path, drop_ticks: bool) -> pd.DataFrame:
     If true drops 'Tick' as index and removes that column it from df
     '''
 
-    df = pd.read_hdf(filePath).astype(np.float32)
+    # DEBUG: print(filePath)
+
+    df = pd.read_hdf(filePath, key='df').astype(np.float32)
 
     if ('Tick' in df.columns and drop_ticks):
         # Reset index and drop it
@@ -184,16 +192,15 @@ def load_h5_as_df(filePath: Path, drop_ticks: bool) -> pd.DataFrame:
     return df
 
 
-def load_config(config_path: Path) -> dict:
+def load_config(config_path: Path):
     config = None
     try:
-
         with open(str(config_path)) as json_file:
             print("Loading config from " + config_path)
             config = json.load(json_file)
     except:
         print("Couldn't load config file, using default one")
-        with open('config/prep_config.json') as json_file:
+        with open('config/dataset_config.json') as json_file:
             config = json.load(json_file)
 
     return config

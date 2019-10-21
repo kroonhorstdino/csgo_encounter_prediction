@@ -1,0 +1,104 @@
+{
+	"base_features": [
+		{
+			"id": "isAlive",
+			"title": "IsAlive",
+			"type": "bool"
+		},
+		{
+			"id": "health",
+			"title": "Health",
+			"type": "int"
+		},
+		{
+			"id": "positionX",
+			"title": "PositionX",
+			"type": "float32"
+		},
+		{
+			"id": "positionY",
+			"title": "PositionY",
+			"type": "float32"
+		},
+		{
+			"id": "positionZ",
+			"title": "PositionZ",
+			"type": "float32"
+		},
+		{
+			"id": "velocityX",
+			"title": "VelocityX",
+			"type": "float32"
+		},
+		{
+			"id": "velocityY",
+			"title": "VelocityY",
+			"type": "float32"
+		},
+		{
+			"id": "velocityZ",
+			"title": "VelocityZ",
+			"type": "float32"
+		},
+		{
+			"id": "distanceToAlly_1",
+			"title": "DistanceToAlly_1",
+			"type": "float32"
+		},
+		{
+			"id": "distanceToAlly_2",
+			"title": "DistanceToAlly_2",
+			"type": "float32"
+		},
+		{
+			"id": "distanceToAlly_3",
+			"title": "DistanceToAlly_3",
+			"type": "float32"
+		},
+		{
+			"id": "distanceToAlly_4",
+			"title": "DistanceToAlly_4",
+			"type": "float32"
+		},
+		{
+			"id": "distanceToEnemy_0",
+			"title": "DistanceToEnemy_0",
+			"type": "float32"
+		},
+		{
+			"id": "distanceToEnemy_1",
+			"title": "DistanceToEnemy_1",
+			"type": "float32"
+		},
+		{
+			"id": "distanceToEnemy_2",
+			"title": "DistanceToEnemy_2",
+			"type": "float32"
+		},
+		{
+			"id": "distanceToEnemy_3",
+			"title": "DistanceToEnemy_3",
+			"type": "float32"
+		},
+		{
+			"id": "distanceToEnemy_4",
+			"title": "DistanceToEnemy_4",
+			"type": "float32"
+		},
+		{
+			"id": "isScoped",
+			"title": "IsScoped",
+			"type": "bool"
+		},
+		{
+			"id": "isDefusing",
+			"title": "IsDefusing",
+			"type": "bool"
+		},
+		{
+			"id": "currentWeapon",
+			"title": "CurrentWeapon",
+			"type": "int"
+		}
+	]
+}
