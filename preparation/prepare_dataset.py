@@ -8,6 +8,8 @@ import time
 import argparse
 import platform
 
+from tqdm import tqdm
+
 import numpy as np
 import pandas as pd
 
@@ -43,10 +45,11 @@ def parse_data(demo_files_paths: List[Path],
 
     num_failed_parse = 0
 
-    print(
+    parse_prog_bar = tqdm(desc="Parsing progress", total=len(demo_files_paths))
+
+    parse_prog_bar.write(
         f"Worker{worker_id}: Starting to parse demo files with verbosity {str(args.verbose)}"
     )
-    start_time_parse = time.time()
 
     # Get list of demo files in dictionary
     # Parse each demo file in demo_files_path
@@ -56,6 +59,10 @@ def parse_data(demo_files_paths: List[Path],
         os.makedirs(str(parsed_csv_files_path))
 
     for file_path in demo_files_paths:
+        parse_prog_bar.set_postfix({
+            "Current file": file_path.stem,
+            "Failed at": num_failed_parse
+        })
 
         # Just to be sure
         parsing_script_location = str(Path('./preparation/parsing.js'))
@@ -77,15 +84,15 @@ def parse_data(demo_files_paths: List[Path],
             num_failed_parse += 1
             print(f"Worker{worker_id}: Failed parsing...")
 
-    # Time keeping
-    end_time_parse = time.time()
-    elapsed_time_parse = end_time_parse - start_time_parse
+        parse_prog_bar.update()
+        parse_prog_bar.set_postfix({
+            "Current file": file_path.stem,
+            "Failed at": num_failed_parse
+        })
 
-    print(
-        f"Worker{worker_id}: Tried to parse >{len(demo_files_paths)}< .dem files to .csv files"
-    )
-    print(f"Worker{worker_id}: Parsing took >>" + str(elapsed_time_parse) +
-          " seconds<<")
+    parse_prog_bar.set_description("Preprocessing finished")
+    parse_prog_bar.write(
+        f"Finished parsing all files. Failed at {num_failed_parse} files")
 
 
 def preprocess_data(parsed_csv_files_list: List[Path],
@@ -96,13 +103,18 @@ def preprocess_data(parsed_csv_files_list: List[Path],
         Uses parameters in config #WIP
     '''
 
-    print("Preprocessing....")
+    prep_prog_bar = tqdm(desc="Preprocessing progress",
+                         total=len(parsed_csv_files_list))
+
+    prep_prog_bar.write("Preprocessing....")
 
     # Create target dir if not exists
     if not os.path.exists(str(processed_files_path)):
         os.makedirs(str(processed_files_path))
 
     for parsed_csv_file in parsed_csv_files_list:
+        prep_prog_bar.set_postfix({"Current file": parsed_csv_file.stem})
+
         df = data_loader.load_csv_as_df(parsed_csv_file)
 
         df = preprocess.add_die_within_sec_labels(df)
@@ -122,6 +134,11 @@ def preprocess_data(parsed_csv_files_list: List[Path],
             raise
         else:
             if (delete_old_csv): os.remove(str(parsed_csv_file))
+        finally:
+            prep_prog_bar.update()
+
+    prep_prog_bar.write("Preprocessing finished")
+    prep_prog_bar.set_description("Preprocessing finished")
 
 
 def randomize_data(processed_h5_files_list: List[Path],
@@ -129,7 +146,10 @@ def randomize_data(processed_h5_files_list: List[Path],
                    files_per_worker: int = 5,
                    delete_old_h5: bool = False):
 
-    print("Attempting to randomize and split in chunks...")
+    rand_progress_bar = tqdm(desc="Randomization progress:",
+                             total=len(processed_h5_files_list))
+
+    rand_progress_bar.write("Attempting to randomize and split in chunks...")
 
     if not os.path.exists(str(randomized_files_path)):
         os.makedirs(str(randomized_files_path))
@@ -140,14 +160,22 @@ def randomize_data(processed_h5_files_list: List[Path],
         files_list = processed_h5_files_list[list_index:min(
             list_index + files_per_worker, len(processed_h5_files_list))]
 
+        rand_progress_bar.set_postfix({"Last file": files_list[0].stem})
+
         randomize.randomize_processed_files(
             files_list, randomized_files_path,
             config["randomization"]["chunk_row_size"], i)
 
-    print("Randomization finished...")
+        rand_progress_bar.update(len(files_list))
+
+    rand_progress_bar.write("Randomization finished...")
+    rand_progress_bar.set_description("Randomization finished")
 
 
 def prepare_dataset():
+
+    all_progress_bar = tqdm(desc="Entire progress", total=3)
+    all_progress_bar.set_postfix({"Status": "Parsing"})
 
     demo_files_list = data_loader.get_files_in_directory(
         Path(config["paths"]["demo_files_path"]), '.dem')
@@ -176,17 +204,26 @@ def prepare_dataset():
                Path(config["paths"]["parsed_files_path"]),
                worker_id=0)
 
+    all_progress_bar.update()
+    all_progress_bar.set_postfix({"Status": "Preprocessing"})
+
     # PREPROCESS DATA
     parsed_csv_files_list = data_loader.get_files_in_directory(
         Path(config["paths"]["parsed_files_path"]), ".csv")
     preprocess_data(parsed_csv_files_list,
                     Path(config["paths"]["processed_files_path"]))
 
+    all_progress_bar.update()
+    all_progress_bar.set_postfix({"Status": "Randomization"})
+
     # RANDOMIZED DATA
     processed_h5_files_list = data_loader.get_files_in_directory(
         Path(config["paths"]["processed_files_path"]), ".h5")
     randomize_data(processed_h5_files_list,
                    Path(config["paths"]["training_files_path"]))
+
+    all_progress_bar.update()
+    all_progress_bar.set_postfix({"Status": "Completed"})
 
 
 if __name__ == '__main__':
@@ -222,7 +259,7 @@ if __name__ == '__main__':
     args = ap.parse_args()
 
     if (args.verbose == None):
-        args.verbose = 4
+        args.verbose = 0
 
     start_time_all = time.time()
 
@@ -235,7 +272,7 @@ if __name__ == '__main__':
 
     if (args.mode != None):
         if (args.mode == 'all'):
-            print("Preparing entire dataset...")
+            print("Prepare entire dataset...")
             prepare_dataset()
         elif (args.mode == 'parse'):
             print("Only parsing...")

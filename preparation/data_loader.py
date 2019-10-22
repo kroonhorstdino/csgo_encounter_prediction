@@ -35,18 +35,13 @@ def get_minibatch_balanced_player(data: pd.DataFrame,
     # Player stays dead
     have_enough_unique_data = sum(player_dies_mask) > num_sample_from_die
 
-    data_batch_die: pd.DataFrame
-    try:
-        data_batch_die = data[player_dies_mask].sample(
-            n=num_sample_from_die, replace=(have_enough_unique_data == False))
-    except:
-        print("Not enough samples to balance this batch!")
-        raise Exception()
+    data_batch_die = data.loc[player_dies_mask].sample(
+        n=num_sample_from_die, replace=(have_enough_unique_data == False))
 
     # Player stays alive
     have_enough_unique_data = sum(
         player_not_die_mask) > num_sample_from_not_die
-    data_batch_not_die = data[player_not_die_mask].sample(
+    data_batch_not_die = data.loc[player_not_die_mask].sample(
         n=num_sample_from_not_die, replace=(have_enough_unique_data == False))
 
     data_batch = pd.concat([data_batch_die, data_batch_not_die])
@@ -54,30 +49,35 @@ def get_minibatch_balanced_player(data: pd.DataFrame,
     return split_data_into_minibatch(data_batch, max_time_to_next_death)
 
 
-def get_player_minibatch_mask(data: pd.DataFrame,
+def get_player_minibatch_mask(df: pd.DataFrame,
                               player_i: int,
                               max_time_to_next_death: int = 5,
                               is_binary=True):
     '''
-        Death labelling:
-            0: is not dead
-            1: has died within time window,
+        isAlive state labelling:
+            0: is dead
+            1: is alive
+
+        Death state labelling:
+            0: is not dead, and will stay alive
+            1: has died within time window, "isDying"
             2: is dead, longer than time window
+
+        WARN: This may remove the death label 2 from the specific player, but all other players may still have labelling 2.
     '''
 
     classification_clmn_name = get_die_within_seconds_column_names(
         10)[player_i]
     isAlive_clmn_name = get_isAlive_column_names(10)[player_i]
 
-    isAlive_mask = data[isAlive_clmn_name] == 1
-    isDying_mask = data[classification_clmn_name] == 1
-    isLongDead_mask = data[classification_clmn_name] == 2
+    isAlive_mask = df[isAlive_clmn_name] == 1
+    isDying_mask = df[classification_clmn_name] == 1
+    isLongDead_mask = df[classification_clmn_name] == 2
 
     # Instances where player is going to die, meaning being alive and dead in the future
     player_die_mask = isAlive_mask & isDying_mask & ~isLongDead_mask
     # Player is alive and is either not going to die or not long dead already (last case should not be possible with correct data)
-    player_not_die_mask = isAlive_mask & ~isDying_mask
-    player_not_die_mask = player_not_die_mask & ~isLongDead_mask
+    player_not_die_mask = isAlive_mask & ~isDying_mask & ~isLongDead_mask
 
     return player_die_mask, player_not_die_mask
 
@@ -94,6 +94,10 @@ def split_data_into_minibatch(df: pd.DataFrame,
     classification_column_names = get_die_within_seconds_column_names(
         10, max_time_to_next_death)
     classification_labels = df[classification_column_names].to_numpy()
+
+    #TODO: Best solution?
+    ''' Remove all 2 labels (is dead longer than time window) and change it to zero (simply dead) for binary classification '''
+    classification_labels[classification_labels > 1] = 1
 
     player_features = get_all_player_features_array(df)
 

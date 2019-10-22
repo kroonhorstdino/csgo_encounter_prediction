@@ -22,7 +22,7 @@ sys.path.append(Path.cwd())
 
 def add_die_within_sec_labels(df: pd.DataFrame,
                               time_window_to_next_death: int = 5,
-                              demo_tickrate: int = 128,
+                              demo_tickrate: int = 64,
                               parsing_tickrate: int = 8) -> pd.DataFrame:
     '''
     Adds labels that contain time to next death within x next seconds to the dataframe
@@ -126,6 +126,7 @@ def one_hot_encoding_weapons(df: pd.DataFrame):
                         weaponClassName.substring(1))
                 });}
     '''
+
     return df
 
 
