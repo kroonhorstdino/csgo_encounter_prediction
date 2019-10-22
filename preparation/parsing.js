@@ -1,6 +1,6 @@
 const fs = require("fs");
 const demofile = require("demofile");
-const p5 = require("p5");
+//const p5 = require("p5");
 
 const path = require("path");
 
@@ -299,7 +299,7 @@ class DemoFileParser {
             const playerName = player ? player.name : "playerMissing";
 
             const position = player.position;
-            const p5originPos = p5.createVector(playerPos.x, playerPos.y, playerPos.z);
+            //const p5originPos = p5.createVector(playerPos.x, playerPos.y, playerPos.z);
 
 
             tickInfo[featureNameStart + "_playerID"] = playerID; //TODO Not used as inuput
@@ -358,7 +358,7 @@ class DemoFileParser {
                 }
 
                 const otherPosition = otherPlayer.position
-                targetPos = p5.createVector(otherPos.x, otherPos.y, otherPos.z);
+                //targetPos = p5.createVector(otherPos.x, otherPos.y, otherPos.z);
 
                 //Calc distance to other player
                 let distanceToOther = this.calcVectorDistance(
@@ -442,16 +442,16 @@ class DemoFileParser {
      */
     angleToOther(playerPos, lookingVec, otherPos) {
 
-        directionVec = p5.Vector.sub(targetPos, originPos);
-        lookingVec
+        //directionVec = p5.Vector.sub(targetPos, originPos);
 
-        directionVec.angleBetween()
+        //directionVec.angleBetween()
 
+        return 0;
     }
 
     createFeatures() {
         let playerFeatures = [];
-        for (const featureSetName of featuresInfoList["player_features_sets"]["correct_all"]) {
+        for (const featureSetName of featuresInfoList["player_features_sets"]["correct_parse_all"]) {
             playerFeatures = playerFeatures.concat(featuresInfoList["player_features"][featureSetName]);
         }
 

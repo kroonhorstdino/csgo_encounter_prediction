@@ -23,8 +23,6 @@ var/
 *.egg
 *.dem
 
-.vscode/
-.vs/
 .eslintrc.json
 
 *.h5
