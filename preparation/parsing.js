@@ -1,247 +1,18 @@
 const fs = require("fs");
 const demofile = require("demofile");
-const path = require("path");
-const config = require("../config/dataset_config.json");
+const p5 = require("p5");
 
-/** 
+const path = require("path");
+
+const config = require("../config/dataset_config.json");
+const featuresInfoList = require("../preparation/features_info.json");
+
+
+/**
  * Data of all weapons, needed for one hot encoding
  * Taken from demofile source code and removed unneeded entries (knifes, etc.)
  */
-const itemDefinitionIndexMap = {
-    1: {
-        itemName: "Desert Eagle",
-        className: "weapon_deagle"
-    },
-    2: {
-        itemName: "Dual Berettas",
-        className: "weapon_elite"
-    },
-    3: {
-        itemName: "Five-SeveN",
-        className: "weapon_fiveseven"
-    },
-    4: {
-        itemName: "Glock-18",
-        className: "weapon_glock"
-    },
-    7: {
-        itemName: "AK-47",
-        className: "weapon_ak47"
-    },
-    8: {
-        itemName: "AUG",
-        className: "weapon_aug"
-    },
-    9: {
-        itemName: "AWP",
-        className: "weapon_awp"
-    },
-    10: {
-        itemName: "FAMAS",
-        className: "weapon_famas"
-    },
-    11: {
-        itemName: "G3SG1",
-        className: "weapon_g3sg1"
-    },
-    13: {
-        itemName: "Galil AR",
-        className: "weapon_galilar"
-    },
-    14: {
-        itemName: "M249",
-        className: "weapon_m249"
-    },
-    16: {
-        itemName: "M4A4",
-        className: "weapon_m4a1"
-    },
-    17: {
-        itemName: "MAC-10",
-        className: "weapon_mac10"
-    },
-    19: {
-        itemName: "P90",
-        className: "weapon_p90"
-    },
-    23: {
-        itemName: "MP5-SD",
-        className: "weapon_mp5sd"
-    },
-    24: {
-        itemName: "UMP-45",
-        className: "weapon_ump45"
-    },
-    25: {
-        itemName: "XM1014",
-        className: "weapon_xm1014"
-    },
-    26: {
-        itemName: "PP-Bizon",
-        className: "weapon_bizon"
-    },
-    27: {
-        itemName: "MAG-7",
-        className: "weapon_mag7"
-    },
-    28: {
-        itemName: "Negev",
-        className: "weapon_negev"
-    },
-    29: {
-        itemName: "Sawed-Off",
-        className: "weapon_sawedoff"
-    },
-    30: {
-        itemName: "Tec-9",
-        className: "weapon_tec9"
-    },
-    31: {
-        itemName: "Zeus x27",
-        className: "weapon_taser"
-    },
-    32: {
-        itemName: "P2000",
-        className: "weapon_hkp2000"
-    },
-    33: {
-        itemName: "MP7",
-        className: "weapon_mp7"
-    },
-    34: {
-        itemName: "MP9",
-        className: "weapon_mp9"
-    },
-    35: {
-        itemName: "Nova",
-        className: "weapon_nova"
-    },
-    36: {
-        itemName: "P250",
-        className: "weapon_p250"
-    },
-    38: {
-        itemName: "SCAR-20",
-        className: "weapon_scar20"
-    },
-    39: {
-        itemName: "SG 553",
-        className: "weapon_sg556"
-    },
-    40: {
-        itemName: "SSG 08",
-        className: "weapon_ssg08"
-    },
-    42: {
-        itemName: "Knife",
-        className: "weapon_knife"
-    },
-    43: {
-        itemName: "Flashbang",
-        className: "weapon_flashbang"
-    },
-    44: {
-        itemName: "High Explosive Grenade",
-        className: "weapon_hegrenade"
-    },
-    45: {
-        itemName: "Smoke Grenade",
-        className: "weapon_smokegrenade"
-    },
-    46: {
-        itemName: "Molotov",
-        className: "weapon_molotov"
-    },
-    47: {
-        itemName: "Decoy Grenade",
-        className: "weapon_decoy"
-    },
-    48: {
-        itemName: "Incendiary Grenade",
-        className: "weapon_incgrenade"
-    },
-    49: {
-        itemName: "C4 Explosive",
-        className: "weapon_c4"
-    },
-    59: {
-        itemName: "Knife",
-        className: "weapon_knife_t"
-    },
-    60: {
-        itemName: "M4A1-S",
-        className: "weapon_m4a1_silencer"
-    },
-    61: {
-        itemName: "USP-S",
-        className: "weapon_usp_silencer"
-    },
-    63: {
-        itemName: "CZ75-Auto",
-        className: "weapon_cz75a"
-    },
-    64: {
-        itemName: "R8 Revolver",
-        className: "weapon_revolver"
-    },
-    500: {
-        itemName: "Bayonet",
-        className: "weapon_bayonet"
-    },
-    505: {
-        itemName: "Flip Knife",
-        className: "weapon_knife_flip"
-    },
-    506: {
-        itemName: "Gut Knife",
-        className: "weapon_knife_gut"
-    },
-    507: {
-        itemName: "Karambit",
-        className: "weapon_knife_karambit"
-    },
-    508: {
-        itemName: "M9 Bayonet",
-        className: "weapon_knife_m9_bayonet"
-    },
-    509: {
-        itemName: "Huntsman Knife",
-        className: "weapon_knife_tactical"
-    },
-    512: {
-        itemName: "Falchion Knife",
-        className: "weapon_knife_falchion"
-    },
-    514: {
-        itemName: "Bowie Knife",
-        className: "weapon_knife_survival_bowie"
-    },
-    515: {
-        itemName: "Butterfly Knife",
-        className: "weapon_knife_butterfly"
-    },
-    516: {
-        itemName: "Shadow Dag",
-        className: "weapon_knife_push"
-    },
-    519: {
-        itemName: "Ursus Knife",
-        className: "weapon_knife_ursus"
-    },
-    520: {
-        itemName: "Navaja Knife",
-        className: "weapon_knife_gypsy_jackknife"
-    },
-    522: {
-        itemName: "Stiletto Knife",
-        className: "weapon_knife_stiletto"
-    },
-    523: {
-        itemName: "Talon Knife",
-        className: "weapon_knife_widowmaker"
-    }
-};
-
+const itemDefinitionIndexMap = featuresInfoList["itemDefinitionIndexMap"];
 
 class DemoFileParser {
     constructor(demoFilePath, targetDirectory, verbosity = 1) {
@@ -259,47 +30,54 @@ class DemoFileParser {
 
         // Object that writes to CSV file
         this.featureWriterObject = this.createFeatures();
-        this.featureWriterObject.path = path.join(targetDirectory, path.basename(demoFilePath, ".dem") + '.csv');
+        this.featureWriterObject.path = path.join(
+            targetDirectory,
+            path.basename(demoFilePath, ".dem") + ".csv"
+        );
 
-        this.createCsvWriter = require('csv-writer').createObjectCsvWriter;
+        this.createCsvWriter = require("csv-writer").createObjectCsvWriter;
 
         this.playersInTeams = [];
 
         this.deathDataBuffer = [];
         this.playerInfoBuffer = [];
 
-        if (this.verbosity > 0) console.log("$$$$$$ Attempting to parse " + this.demoFileName);
-        if (this.verbosity > 0) console.log("$$$$$$ Target path set to: " + this.featureWriterObject.path);
+        if (this.verbosity > 0)
+            console.log("$$$$$$ Attempting to parse " + this.demoFileName);
+        if (this.verbosity > 0)
+            console.log(
+                "$$$$$$ Target path set to: " + this.featureWriterObject.path
+            );
 
         //Delete file before wrtiting a new one
         try {
             fs.unlinkSync(this.featureWriterObject.path);
         } catch (e) {
-
         } finally {
             try {
                 this.subscribeToDemoEvents();
                 this.parseDemoFile();
             } catch (e) {
-                console.log(">>>> Error message during demo parsing: \n>>>>>> " + e.message);
-                console.log(">>>> Demo has some irregularities, aborting and deleting file!");
+                console.log(
+                    ">>>> Error message during demo parsing: \n>>>>>> " + e.message
+                );
+                console.log(
+                    ">>>> Demo has some irregularities, aborting and deleting file!"
+                );
 
                 process.exitCode = 1;
             }
         }
-
     }
 
     /**
-     * 
+     *
      *
      * @memberof DemoFileParser
      */
     subscribeToDemoEvents() {
-
         //Setting up things
         this.demoFile.on("start", s => {
-
             this.SampleRateModulo = this.getTickSampleRateModulo();
 
             this.ignoreTicks = true; //Ingore ticks until first round starts
@@ -308,7 +86,7 @@ class DemoFileParser {
             for (const team of this.demoFile.teams) {
                 this.playersInTeams.push({
                     index: team.index,
-                    players: team.members,
+                    players: team.members
                 });
             }
         });
@@ -317,23 +95,38 @@ class DemoFileParser {
         this.demoFile.on("tickend", tick => this.on_tickend());
 
         this.demoFile.gameEvents.on("round_start", s => this.start_ignore_ticks());
-        this.demoFile.gameEvents.on("round_freeze_end", f => this.start_parsing_ticks());
+        this.demoFile.gameEvents.on("round_freeze_end", f =>
+            this.start_parsing_ticks()
+        );
 
         //Write down data at the end of every Round
-        this.demoFile.gameEvents.on("round_officially_ended", s => this.on_round_officially_ended());
+        this.demoFile.gameEvents.on("round_officially_ended", s =>
+            this.on_round_officially_ended()
+        );
 
         //End of the demo file
         this.demoFile.on("end", e => {
             this.on_round_officially_ended();
-            if (this.verbosity > 0) console.log(`------------ Parsing of demo ${this.demoFileName} is complete`);
-
+            if (this.verbosity > 0)
+                console.log(
+                    `------------ Parsing of demo ${this.demoFileName} is complete`
+                );
 
             let millis = Date.now() - this.startTime;
-            if (this.verbosity > 1) console.log("------------ Parsing of demo took " + Math.floor(millis / 1000) + " seconds");
-            if (this.verbosity > 2) console.log(`------------ ${this.sucessfulParsedCounter} of ${this.demoFile.currentTick} ticks have been parsed and saved`);
+            if (this.verbosity > 1)
+                console.log(
+                    "------------ Parsing of demo took " +
+                    Math.floor(millis / 1000) +
+                    " seconds"
+                );
+            if (this.verbosity > 2)
+                console.log(
+                    `------------ ${this.sucessfulParsedCounter} of ${this.demoFile.currentTick} ticks have been parsed and saved`
+                );
         });
 
-        if (this.verbosity > 1) console.log("$$$$$$ Succesfully subscribed to all events!");
+        if (this.verbosity > 1)
+            console.log("$$$$$$ Succesfully subscribed to all events!");
     }
 
     parseDemoFile() {
@@ -358,18 +151,22 @@ class DemoFileParser {
     }
 
     on_tickend() {
-
         this.tickCounter++; //New tick has been seen
-        /** 
+        /**
          * If this tick is not relevant, do not parse this tick
          */
         if (!this.isRelevantTick()) return;
 
         if (this.is_show_print_message()) {
-            console.log("|| Tick: " + this.demoFile.currentTick + " | " + this.sucessfulParsedCounter);
+            console.log(
+                "|| Tick: " +
+                this.demoFile.currentTick +
+                " | " +
+                this.sucessfulParsedCounter
+            );
         }
 
-        /** 
+        /**
          * Get player positions each tick
          */
         this.getAllPlayerInfoForTick();
@@ -389,23 +186,25 @@ class DemoFileParser {
 
         const finishedRound = this.demoFile.gameRules.roundsPlayed;
 
-        if (this.verbosity > 2) console.log(`===========> ${this.demoFileName} - ROUND: ${finishedRound} | TICK: ${this.demoFile.currentTick} PARSED!`);
+        if (this.verbosity > 2)
+            console.log(
+                `===========> ${this.demoFileName} - ROUND: ${finishedRound} | TICK: ${this.demoFile.currentTick} PARSED!`
+            );
 
-        /** 
+        /**
          * Write round intro all stored entries
          */
-        this.deathDataBuffer.forEach((kill) => {
+        this.deathDataBuffer.forEach(kill => {
             kill.round = finishedRound;
         });
-        this.playerInfoBuffer.forEach((playerInfo) => {
+        this.playerInfoBuffer.forEach(playerInfo => {
             playerInfo.round = finishedRound;
         });
 
-        /** 
+        /**
          * WRITE DATA TO CSV FILE
          */
-        this.writerToPlayerInfo
-            .writeRecords(this.playerInfoBuffer);
+        this.writerToPlayerInfo.writeRecords(this.playerInfoBuffer);
         //this.writerToDeaths.writeRecords(this.deathDataBuffer);
         if (this.verbosity > 2) console.log("===========> Data written to CSV");
 
@@ -415,7 +214,7 @@ class DemoFileParser {
 
     //Should a tick message be printed now?
     is_show_print_message() {
-        return (this.verbosity > 3) && (this.tickCounter % 1000 == 0);
+        return this.verbosity > 3 && this.tickCounter % 1000 == 0;
     }
 
     /**
@@ -425,7 +224,7 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     isRelevantTick() {
-        return !this.ignoreTicks && (this.tickCounter % this.SampleRateModulo == 0);
+        return !this.ignoreTicks && this.tickCounter % this.SampleRateModulo == 0;
     }
 
     /**
@@ -439,7 +238,7 @@ class DemoFileParser {
 
     /**
      * Once the timer of the round starts and players can move
-     * 
+     *
      */
     start_parsing_ticks() {
         //Start parsing ticks once player can move again
@@ -447,12 +246,17 @@ class DemoFileParser {
     }
 
     /**
+     * ########
+     * COLLECT INFORMATION
+     * ########
+     */
+
+    /**
      * Parses information of all players for current tick and adds it to info array for current round
      *
      * @memberof DemoFileParser
      */
     getAllPlayerInfoForTick() {
-
         //Terrorist
         let t = this.demoFile.teams[2];
         //Counter-Terrorist
@@ -461,17 +265,21 @@ class DemoFileParser {
         //If anything is wrong with the teams
         if (t == undefined || ct == undefined) return;
 
-
         const allPlayers = [].concat(t.members, ct.members);
 
         const currentTick = this.demoFile.currentTick;
 
         if (allPlayers.length != 10 || allPlayers.includes(null)) {
-            if (this.is_show_print_message()) console.log("|| Tick: " + currentTick + " | Teams are not complete, discarding this tick!");
+            if (this.is_show_print_message())
+                console.log(
+                    "|| Tick: " +
+                    currentTick +
+                    " | Teams are not complete, discarding this tick!"
+                );
             return;
         }
 
-        //Info from current tick for all players
+        //Stores info about all players from current tick
         let tickInfo = {
             tick: currentTick
         };
@@ -479,8 +287,10 @@ class DemoFileParser {
         //Player counter for later loop
         let playerCounter = 0;
 
+        /**
+         * @type {demofile.Player} player
+         */
         for (const player of allPlayers) {
-
             //Go through all players and get features
 
             const featureNameStart = `f_${playerCounter}`;
@@ -488,8 +298,9 @@ class DemoFileParser {
             const playerID = player ? player.userId : "-1";
             const playerName = player ? player.name : "playerMissing";
 
-
             const position = player.position;
+            const p5originPos = p5.createVector(playerPos.x, playerPos.y, playerPos.z);
+
 
             tickInfo[featureNameStart + "_playerID"] = playerID; //TODO Not used as inuput
 
@@ -508,40 +319,74 @@ class DemoFileParser {
             tickInfo[featureNameStart + "_armor"] = player.armor;
 
             //Tactical information
+            tickInfo[featureNameStart + "_hasHelmet"] = player.hasHelmet ? 1 : 0;
             tickInfo[featureNameStart + "_isSpotted"] = player.isSpotted ? 1 : 0;
             tickInfo[featureNameStart + "_isScoped"] = player.isScoped ? 1 : 0;
             tickInfo[featureNameStart + "_isDefusing"] = player.isDefusing ? 1 : 0;
 
-            /** 
+            // TODO: String bad! Find a solution. Must be one hot encoded?
+            tickInfo[featureNameStart + "_placeName"] = player.placeName
+
+            /**
+             * ########
              * WEAPONS
+             * ########
              */
 
+            tickInfo[featureNameStart + "_equipmentValue"] = player.currentEquipmentValue
+
             if (player.weapon != null) {
-                tickInfo[`${featureNameStart}_currentWeapon`] = this.featureGetCorrectWeaponIndex(player.weapon.itemIndex);
+                tickInfo[
+                    `${featureNameStart}_currentWeapon`
+                ] = this.featureGetCorrectWeaponIndex(player.weapon.itemIndex);
             }
 
-            let allyCounter = 1; //The player itself has index 0.
+            /**
+             * ###############
+             * VALUES RELATIVE TO OTHER PLAYERS
+             * ###############
+             */
+
+            let allyCounter = 1; //The player itself has index 0, so we begin at 1.
             let enemyCounter = 0;
 
             //Distance to other players (Index begins at 1 for allies, 0 for enemies)
             for (const otherPlayer of allPlayers) {
-
                 //Don't measure distance to yourself!
                 if (otherPlayer.userId == player.userId) {
                     continue;
                 }
 
+                const otherPosition = otherPlayer.position
+                targetPos = p5.createVector(otherPos.x, otherPos.y, otherPos.z);
+
                 //Calc distance to other player
-                let distanceToOther = this.calcVectorDistance(player.position, otherPlayer.position);
+                let distanceToOther = this.calcVectorDistance(
+                    player.position,
+                    otherPosition
+                );
+
 
                 //Other player is in ally team
                 if (player.teamNumber == otherPlayer.teamNumber) {
-                    tickInfo[`${featureNameStart}_distanceToAlly_${allyCounter}`] = distanceToOther;
+                    tickInfo[
+                        `${featureNameStart}_distanceToAlly_${allyCounter}`
+                    ] = distanceToOther;
                     allyCounter++;
                 }
                 //Other player on enemy team (Ally_0 is player itself)
                 else {
-                    tickInfo[`${featureNameStart}_distanceToEnemy_${enemyCounter}`] = distanceToOther;
+                    tickInfo[
+                        `${featureNameStart}_distanceToEnemy_${enemyCounter}`
+                    ] = distanceToOther;
+
+                    /** 
+                    let angleToOther = null
+                    tickInfo[
+                        `${featureNameStart}_angleAbsoluteToEnemy_${enemyCounter}`
+                    ] = this.angleToOther(p5originPos, player.eyeAngles, otherPosition);
+                    */
+
                     enemyCounter++;
                 }
             }
@@ -550,8 +395,16 @@ class DemoFileParser {
         }
 
         //Check if anything went wrong
-        if (Object.values(tickInfo).includes(null) || Object.values(tickInfo).includes(NaN)) {
-            if (this.verbosity > 3) console.log("|| Tick: " + currentTick + " | Something went wrong, discarding this tick!");
+        if (
+            Object.values(tickInfo).includes(null) ||
+            Object.values(tickInfo).includes(NaN)
+        ) {
+            if (this.verbosity > 0)
+                console.warn(
+                    "|| Tick: " +
+                    currentTick +
+                    " | Something went wrong, discarding this tick!"
+                );
             return;
         } else {
             this.sucessfulParsedCounter++;
@@ -559,105 +412,65 @@ class DemoFileParser {
         }
     }
 
-    createFeatures() {
+    /**
+    * Calculates distance between two X,Y positions
+    *
+    * @param {Vector} positionA
+    * @param {Vector} positionB
+    * @param {boolean} useTaxicab If true, the cheaper taxicab algorithm is used.
+    * @returns {Number} A distance
+    * @memberof DemoFileParser
+    */
+    calcVectorDistance(positionA, positionB) {
+        let xs = positionA.x - positionB.x,
+            ys = positionA.y - positionB.y;
 
-        const playerFeatures = [
-            /*{
-                    id: 'playerName',
-                    title: 'PlayerName'
-                },*/
-            {
-                id: 'isAlive',
-                title: 'IsAlive'
-            }, {
-                id: 'positionX',
-                title: 'PositionX'
-            }, {
-                id: 'positionY',
-                title: 'PositionY'
-            }, {
-                id: 'positionZ',
-                title: 'PositionZ'
-            }, {
-                id: 'velocityX',
-                title: 'VelocityX'
-            }, {
-                id: 'velocityY',
-                title: 'VelocityY'
-            }, {
-                id: 'velocityZ',
-                title: 'VelocityZ'
-            },
-            //Relative distance to all other players (1-9)
-            {
-                id: 'distanceToAlly_1',
-                title: 'DistanceToAlly_1'
-            }, {
-                id: 'distanceToAlly_2',
-                title: 'DistanceToAlly_2'
-            }, {
-                id: 'distanceToAlly_3',
-                title: 'DistanceToAlly_3'
-            }, {
-                id: 'distanceToAlly_4',
-                title: 'DistanceToAlly_4'
-            }, {
-                id: 'distanceToEnemy_0',
-                title: 'DistanceToEnemy_0'
-            }, {
-                id: 'distanceToEnemy_1',
-                title: 'DistanceToEnemy_1'
-            }, {
-                id: 'distanceToEnemy_2',
-                title: 'DistanceToEnemy_2'
-            }, {
-                id: 'distanceToEnemy_3',
-                title: 'DistanceToEnemy_3'
-            }, {
-                id: 'distanceToEnemy_4',
-                title: 'DistanceToEnemy_4'
-            },
-            //Health, etc.
-            {
-                id: 'health',
-                title: 'Health'
-            }, {
-                id: 'isScoped',
-                title: 'IsScoped'
-            }, {
-                id: 'isDefusing',
-                title: 'IsDefusing'
-            },
-            {
-                id: 'currentWeapon',
-                title: 'CurrentWeapon'
-            }
-        ];
+        // Square values
+        xs *= xs;
+        ys *= ys;
+
+        // Pythagoras
+        return Math.sqrt(xs + ys);
+    }
+
+    /**
+     * Get angle of croshair to other player
+     * 
+     * @param {Vector} playerPos 
+     * @param {Object{pitch, yaw}} playerAngles 
+     * @param {Vector} otherPos 
+     */
+    angleToOther(playerPos, lookingVec, otherPos) {
+
+        directionVec = p5.Vector.sub(targetPos, originPos);
+        lookingVec
+
+        directionVec.angleBetween()
+
+    }
+
+    createFeatures() {
+        let playerFeatures = [];
+        for (const featureSetName of featuresInfoList["player_features_sets"]["correct_all"]) {
+            playerFeatures = playerFeatures.concat(featuresInfoList["player_features"][featureSetName]);
+        }
 
         /*
-        TODO: Hot one encoding somewhere. Do it afterwards in  preprocessing
-        for (const weaponIndex in itemDefinitionIndexMap) {
-            //Don't add other knifes to the feature list, all knifes will be mapped to "normal knife" (index 42)
-            if (this.isDifferentKnifeWeaponIndex(weaponIndex)) continue;
+            TODO: Hot one encoding somewhere. Do it afterwards in  preprocessing
+            for (const weaponIndex in itemDefinitionIndexMap) {
+                //Don't add other knifes to the feature list, all knifes will be mapped to "normal knife" (index 42)
+                if (this.isDifferentKnifeWeaponIndex(weaponIndex)) continue;
+    
+                const weaponClassName = `${itemDefinitionIndexMap[weaponIndex].className}_${weaponIndex}`;
+    
+                playerFeatures.push({
+                    id: weaponClassName,
+                    //Uppercase for first letter (I don't know why exactly)
+                    title: (weaponClassName.substring(0, 1)[0].toUpperCase()).concat(weaponClassName.substring(1))
+                });
+            }*/
 
-            const weaponClassName = `${itemDefinitionIndexMap[weaponIndex].className}_${weaponIndex}`;
-
-            playerFeatures.push({
-                id: weaponClassName,
-                //Uppercase for first letter (I don't know why exactly)
-                title: (weaponClassName.substring(0, 1)[0].toUpperCase()).concat(weaponClassName.substring(1))
-            });
-        }*/
-
-        let allFeatures = [{
-                id: 'round',
-                title: 'Round'
-            },
-            {
-                id: 'tick',
-                title: 'Tick'
-            }
-        ];
+        let allFeatures = featuresInfoList["demo_features"];
 
         //Generate features per player and push into allFeatures array
         for (const feature of playerFeatures) {
@@ -669,7 +482,6 @@ class DemoFileParser {
                     id: newId,
                     title: newTitle
                 });
-
             }
         }
 
@@ -699,7 +511,7 @@ class DemoFileParser {
 
     /**
      * Checks if knife is a knife other than the "normal knife" (index 42)
-     * 
+     *
      * Above index 500 only knifes
      * index 59 is t_knife
      *
@@ -708,7 +520,7 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     isDifferentKnifeWeaponIndex(weaponIndex) {
-        return (weaponIndex >= 500 || weaponIndex == 59);
+        return weaponIndex >= 500 || weaponIndex == 59;
     }
 
     /**
@@ -718,7 +530,6 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     getTickSampleRateModulo() {
-
         //Incase tickrate is not accesible in the demo
         try {
             if (!(this.demoFile.tickRate >= 0)) throw NaN;
@@ -737,34 +548,17 @@ class DemoFileParser {
 
                 default:
                     //In case of irregular tick rates
-                    return Math.round(this.demoFile.tickRate / (this.demoFile.tickRate / 8)); //64 / (64 / 8)
-
+                    return Math.round(
+                        this.demoFile.tickRate / (this.demoFile.tickRate / 8)
+                    ); //64 / (64 / 8)
             }
         } catch (e) {
-            if (this.verbosity > 1) console.log("$$$$$$ No tickrate detected! Assuming demo tickrate of 32");
-            return 4; //New tick has been seen
+            if (this.verbosity > 1)
+                console.log(
+                    "$$$$$$ No tickrate detected! Assuming demo tickrate of 64"
+                );
+            return 8; //New tick has been seen
         }
-    }
-
-    /**
-     * Calculates distance between two X,Y positions
-     *
-     * @param {Vector} positionA
-     * @param {Vector} positionB
-     * @param {boolean} useTaxicab If true, the cheaper taxicab algorithm is used.
-     * @returns {Number} A distance
-     * @memberof DemoFileParser
-     */
-    calcVectorDistance(positionA, positionB) {
-        let xs = positionA.x - positionB.x,
-            ys = positionA.y - positionB.y;
-
-        // Square values
-        xs *= xs;
-        ys *= ys;
-
-        // Pythagoras
-        return Math.sqrt(xs + ys);
     }
 }
 
@@ -773,8 +567,8 @@ let verbosity = 4;
 
 //Its weird, but it works
 if (process.argv[2] == "true") {
-    demoFilePath = '../demo_files/sprout-vs-ex-epsilon-m3-overpass.dem';
-    parsedFilePath = 'parsed_files/';
+    demoFilePath = "../demo_files/sprout-vs-ex-epsilon-m3-overpass.dem";
+    parsedFilePath = "parsed_files/";
 } else {
     //TODO different ways to set paths
     demoFilePath = process.argv[2];
