@@ -16,9 +16,6 @@ import torch.nn.functional as F
 from torch.utils.data.dataset import Dataset
 '''
 
-sys.path.append(Path.cwd().parent)
-sys.path.append(Path.cwd())
-
 
 def get_minibatch_balanced_player(data: pd.DataFrame,
                                   player_i,
@@ -117,6 +114,30 @@ def get_all_player_features_array(df: pd.DataFrame) -> List[pd.DataFrame]:
     return player_features
 
 
+def get_feature_names_from_features_set(feature_set_name: str):
+    ''' TODO:
+        Get all features of the feature set specified in features_info.json
+    '''
+    pass
+
+
+def get_all_player_feature_names_from_set(df_columns,
+                                          feature_set: List[str]) -> List[str]:
+    ''' TODO:
+        From a feature set in the configs, generate the names of the features in the dataframes
+            e.g.: in config: EquipmentValue becomes f_{player}_EquipmentValue for all players
+    '''
+    pass
+
+
+def get_column_indices_from_names(df_columns,
+                                  column_names: List[str]) -> List[int]:
+    ''' TODO:
+        Get the indecies of columns from their names
+    '''
+    pass
+
+
 def get_isAlive_column_names(num_players: int = 10) -> List[str]:
 
     column_names = []
@@ -209,7 +230,10 @@ def load_config(config_path: Path):
 
     return config
 
-    # Testing
+
+features_info = load_config('preparation/features_info.json')
+
+# Testing
 if __name__ == "__main__":
     '''
     features, labels= get_minibatch_balanced_player(pd.read_csv(

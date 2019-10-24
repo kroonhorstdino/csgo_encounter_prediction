@@ -22,7 +22,7 @@
 			"tactical",
 			"distance_to_enemy"
 		],
-		"correct_parse_all": [
+		"parse_correct_all": [
 			"basic",
 			"player_movement",
 			"distance_to_ally",
@@ -30,7 +30,8 @@
 			"tactical",
 			"weapon_basic"
 		],
-		"all": [
+		"training_all": [],
+		"parse_all": [
 			"basic",
 			"player_movement",
 			"distance_to_ally",

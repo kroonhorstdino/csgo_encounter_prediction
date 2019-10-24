@@ -451,7 +451,7 @@ class DemoFileParser {
 
     createFeatures() {
         let playerFeatures = [];
-        for (const featureSetName of featuresInfoList["player_features_sets"]["correct_parse_all"]) {
+        for (const featureSetName of featuresInfoList["player_features_sets"]["parse_correct_all"]) {
             playerFeatures = playerFeatures.concat(featuresInfoList["player_features"][featureSetName]);
         }
 
