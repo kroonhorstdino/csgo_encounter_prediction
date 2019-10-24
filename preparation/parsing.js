@@ -7,6 +7,11 @@ const path = require("path");
 const config = require("../config/dataset_config.json");
 const featuresInfoList = require("../preparation/features_info.json");
 
+/**
+ * TODOs
+ * TODO: Parse angles of player
+ * TODO: One hot encoce weapons (itemDefinitionIndexMap in features_info.json)
+ */
 
 /**
  * Data of all weapons, needed for one hot encoding

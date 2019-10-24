@@ -1,48 +1,51 @@
-import matplotlib.animation as animation
-from torch.utils.data.dataset import Dataset
-import torch.nn.functional as F
-from torch.autograd import Variable
-import torch.nn as nn
-import torch
-
-from matplotlib import pyplot as plt
-import pandas as pd
-import numpy as np
-from sklearn.metrics import average_precision_score
-from sklearn.metrics import precision_recall_curve
-from sklearn.metrics import roc_auc_score
-from sklearn.metrics import roc_curve
-from pydoc import locate
-
-from tqdm import tqdm
 import argparse as ap
-
-import commentjson
-from termcolor import colored
-import os
-import random
+from datetime import date
 import glob
 import itertools
+import os
+import random
 import sys
 import time
 from pathlib import Path
+from pydoc import locate
 from typing import List, Tuple
+
+import commentjson
+import matplotlib.animation as animation
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from matplotlib import pyplot as plt
+from sklearn.metrics import (average_precision_score, precision_recall_curve,
+                             roc_auc_score, roc_curve)
+from termcolor import colored
+from torch.autograd import Variable
+from torch.utils.data.dataset import Dataset
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 sys.path.insert(0, str(Path.cwd() / 'preparation/'))
 
+import data_loader
 import models
 import preprocess
-import data_loader
+import prepare_dataset
+
+PATH_RESULTS = Path('results')
 
 
 class CounterStrikeDataset(Dataset):
-    def __init__(self, data_config, train_config, isValidationSet=False):
+    def __init__(self,
+                 data_config,
+                 train_config,
+                 dataset_files_partition,
+                 isValidationSet=False):
         if (not isValidationSet):
-            self.dataset_files = data_loader.get_files_in_directory(
-                data_config["paths"]["training_files_path"], '.h5')
+            self.dataset_files = dataset_files_partition[0]
         else:
-            self.dataset_files = data_loader.get_files_in_directory(
-                data_config["paths"]["validation_files_path"], '.h5')
+            self.dataset_files = dataset_files_partition[1]
 
         # Small sample of dataset
         dataset_sample = data_loader.load_h5_as_df(self.dataset_files[0],
@@ -112,7 +115,10 @@ def is_validation_epoch(epoch_i: int):
     return epoch_i % 3 == 0
 
 
-def train_csgo(dataset_config_path: Path, train_config_path: Path):
+def train_csgo(dataset_config_path: Path,
+               train_config_path: Path,
+               run_name: str = None,
+               loss_calculation_mode='target'):
 
     print("Start training...")
 
@@ -128,10 +134,14 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
 
     OptimizerType = torch.optim.Adam
 
+    dataset_files_partition = prepare_dataset.get_dataset_partitions(
+        dataset_config["paths"]["training_files_path"], [0.8, 0.2, 0])
+
     # the dataset returns a batch when called (because we get the whole batch from one file), the batch size of the data loader thus is set to 1 (default)
     # epoch size is how many elements the iterator of the generator will provide, NOTE should not be too small, because it have a significant overhead p=0.05
     training_set = CounterStrikeDataset(dataset_config,
                                         train_config,
+                                        dataset_files_partition,
                                         isValidationSet=False)
     training_generator = torch.utils.data.DataLoader(training_set,
                                                      batch_size=1,
@@ -139,6 +149,7 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
 
     validation_set = CounterStrikeDataset(dataset_config,
                                           train_config,
+                                          dataset_files_partition,
                                           isValidationSet=True)
     validation_generator = torch.utils.data.DataLoader(validation_set,
                                                        batch_size=1,
@@ -152,8 +163,27 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
 
     model.to(device)
 
+    print("Creating tensorboard summary writer")
+
+    writer = SummaryWriter(str(Path(PATH_RESULTS / run_name)))
+    writer.add_hparams(
+        {
+            "feature_set": train_config["training"]["feature_set"],
+            "lr": train_config["training"]["lr"],
+            "batch_size": training_set.batch_row_size
+        }, {})
+
+    #dummy_X, dummy_y, dummy_player_i = next(iter(training_generator))
+    #dummy_X = [(player_X[0, :]).to(device) for player_X in dummy_X]
+    #writer.add_graph(model, dummy_X)
+
     #criterion = nn.CrossEntropyLoss()
     binary_classification_loss = torch.nn.BCELoss()
+    #binary_classification_loss = torch.nn.BCEWithLogitsLoss()
+    '''if (loss_calculation_mode == 'weighted'):
+        #TODO: Calc weight for loss function
+        binary_classification_loss = torch.nn.BCELoss()'''
+
     optimizer = OptimizerType(model.parameters(),
                               lr=train_config["training"]["lr"])
 
@@ -199,6 +229,7 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
     for epoch_i in range(training_set.num_epoch):
 
         now = time.time()
+        train_prog_bar.set_description(f"EPOCH {epoch_i}")
 
         # reset seed   https://github.com/pytorch/pytorch/issues/5059  data loader returns the same values
         np.random.seed()
@@ -222,7 +253,7 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
             #death_times = death_times[0]
 
             # training_generator adds one dimension to each tensor, so we have to extract the data
-            X = [(hero_X[0, :]).to(device) for hero_X in X]
+            X = [(player_X[0, :]).to(device) for player_X in X]
             y = (y[0, :]).to(device)
             player_i = player_i[0].to(device)
 
@@ -236,6 +267,7 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
             '''
 
             output = model(X)
+            #TODO: Maybe nn.BCEWithLogitsLoss?
             output = torch.sigmoid(output)
             output_np = output.cpu().detach().numpy()
 
@@ -254,7 +286,9 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
             optimizer.step()
 
             # Log loss
-            epoch_loss_target_player.append(batch_loss_target_player)
+            epoch_loss_target_player.append(
+                batch_loss_target_player.cpu().detach().numpy().astype(
+                    np.float32))
 
             batch_loss_all_player = binary_classification_loss(
                 output, y).cpu().detach().numpy().astype(np.float32)
@@ -272,16 +306,21 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
                 y[:, player_i] > 0.5)).cpu().numpy().reshape(-1).astype(
                     np.float32)
 
-            #FIXME: Look into this black magic!
+            batch_accuracy_all_player_mean = batch_accuracy_all_player.mean()
+            batch_accuracy_target_player_mean = batch_accuracy_target_player.mean(
+            )
+
+            # Accuracy for predicting deaths correctly and survival
             batch_accuracy_die = ((output > 0.5) == (y > 0.5)).view(-1)[
                 y.view(-1) > 0.5].cpu().numpy().reshape(-1).astype(np.float32)
             batch_accuracy_not_die = ((output > 0.5) == (y > 0.5)).view(-1)[
                 y.view(-1) < 0.5].cpu().numpy().reshape(-1).astype(np.float32)
 
-            epoch_accuracy_all_player.append(batch_accuracy_all_player.mean(
-            ))  # Add mean accuracy to epoch accuracies
+            epoch_accuracy_all_player.append(
+                batch_accuracy_all_player_mean
+            )  # Add mean accuracy to epoch accuracies
             epoch_accuracy_target_player.append(
-                batch_accuracy_target_player.mean())
+                batch_accuracy_target_player_mean)
 
             # these have varying size, so calculating the proper mean across batches takes more work
             epoch_accuracy_die.extend(batch_accuracy_die)
@@ -332,11 +371,32 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
             #####
         '''
 
+        #TODO: Add accuracies for predictions per time window [1,2,3....,20]
+
         epoch_prog_bar.reset()
 
-        if (epoch_i % 10) == 9:
-            np.save('epoch_per_sec_predictions.npy',
-                    np.array(epoch_per_sec_predictions))
+        writer.add_scalars(
+            "Training/Loss", {
+                'Loss all players': np.array(epoch_loss_all_player).mean(),
+                'Loss target player':
+                np.array(epoch_loss_target_player).mean()
+            }, epoch_i)
+
+        writer.add_scalars(
+            "Training/Accuracy", {
+                "Accuracy all players":
+                np.array(epoch_accuracy_all_player).mean(),
+                "Accuracy target player":
+                np.array(epoch_accuracy_target_player).mean()
+            }, epoch_i)
+
+        writer.add_scalars(
+            "Training/Die and not die accuracy", {
+                "Accuracy for Death":
+                np.array(epoch_accuracy_die).mean(),
+                "Accuracy for Survival (not die)":
+                np.array(epoch_accuracy_not_die).mean()
+            }, epoch_i)
 
         all_train_losses.append(np.array(epoch_loss_all_player).mean())
         all_train_accuracies.append(np.array(epoch_accuracy_all_player).mean())
@@ -346,7 +406,7 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
             (np.array(epoch_accuracy_die).mean(),
              np.array(epoch_accuracy_not_die).mean()))
         '''
-        TODO: For continoos death labels
+        TODO: For continuuos death labels
 
         for timeslot_i in range(20):
             all_train_per_sec_accuracies[timeslot_i].append(
@@ -356,7 +416,10 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
             all_train_per_sec_predictions_std[timeslot_i].append(
                 np.array(epoch_per_sec_predictions[timeslot_i]).std())
         '''
+
+        #
         '''
+            TODO: Stop when training get too slow
             #####
             NOTE: VALIDATION EPOCH
             #####
@@ -406,16 +469,44 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
                                 -log_every_num_batches:]).mean()
                         })
 
-            all_validation_roc_scores.append(
-                roc_auc_score(epoch_all_y, epoch_all_pred))
-            all_validation_pr_scores.append(
-                average_precision_score(epoch_all_y, epoch_all_pred))
+            writer.add_scalars(
+                "Validation/Loss",
+                {'Loss all players': np.array(epoch_loss_all_player).mean()},
+                epoch_i)
+
+            epoch_accuracy_all_player_mean = np.array(
+                epoch_accuracy_all_player).mean()
+
+            writer.add_scalars(
+                "Validation/Accuracy",
+                {"Accuracy all players": epoch_accuracy_all_player_mean},
+                epoch_i)
+            '''writer.add_scalar(
+                "Validation/D", {
+                    "":
+                    np.array(epoch_accuracy_die).mean(),
+                    "Accuracy for Survival (not die)":
+                    np.array(epoch_accuracy_not_die).mean()
+                }, epoch_i)'''
+
+            validation_roc_auc_score = roc_auc_score(epoch_all_y,
+                                                     epoch_all_pred)
+            validation_average_precision_score = average_precision_score(
+                epoch_all_y, epoch_all_pred)
+
+            writer.add_scalars(
+                "Validation/Scores", {
+                    "ROC Score": validation_roc_auc_score,
+                    "Average Precision Score":
+                    validation_average_precision_score
+                }, epoch_i)
+
+            all_validation_roc_scores.append(validation_roc_auc_score)
+            all_validation_pr_scores.append(validation_average_precision_score)
 
             all_validation_losses.append(
                 np.array(epoch_loss_all_player).mean())
 
-            epoch_accuracy_all_player_mean = np.array(
-                epoch_accuracy_all_player).mean()
             all_validation_accuracies.append(epoch_accuracy_all_player_mean)
 
             validation_prog_bar.write(
@@ -445,18 +536,27 @@ def train_csgo(dataset_config_path: Path, train_config_path: Path):
         )
         sys.stdout.flush()
 
+        #
+        '''
+        if (epoch_i % 10) == 9:
+            np.save('epoch_per_sec_predictions.npy',
+                    np.array(epoch_per_sec_predictions))
+
         if (epoch_i % 10) == 9:
             np.save('all_train_per_sec_predictions.npy',
                     np.array(all_train_per_sec_predictions))
             np.save('all_train_per_sec_predictions_std.npy',
                     np.array(all_train_per_sec_predictions_std))
+        '''
 
         if (epoch_i % 100) == 99:
-            torch.save(model.state_dict(), "model" + str(epoch_i) + ".model")
+            torch.save(model.state_dict(),
+                       f"modelstr_{run_name}_EPOCH_{epoch_i}.model")
 
         #CLI
         train_prog_bar.update()
-        train_prog_bar.set_description(f"EPOCH {epoch_i}")
+
+    writer.close()
 
 
 if __name__ == "__main__":
@@ -470,8 +570,22 @@ if __name__ == "__main__":
     parser.add_argument("-trainconf",
                         default='config/train_config.json',
                         help="Config for training")
+    parser.add_argument(
+        "-name",
+        default=f'run_{date.today().strftime("%S-%M-%H-%d-%b-%Y")}',
+        help="Name of training run")
+    parser.add_argument(
+        "-loss_mode",
+        choices=['all', 'target', 'weighted'],
+        default='target',
+        help=
+        "WIP! ---- How calculate loss? For all outputs equally, only for the target player of the batch, or weighted for deaths vs non deaths labels."
+    )
     parser.add_argument("-verbose", default=2, help="Config for training")
 
     args = parser.parse_args()
 
-    train_csgo(args.dataconf, args.trainconf)
+    train_csgo(dataset_config_path=args.dataconf,
+               train_config_path=args.trainconf,
+               run_name=args.name,
+               loss_calculation_mode=args.loss_mode)

@@ -23,8 +23,8 @@ import preprocess
 import randomize
 
 
-def get_dataset_partitions(files_path: Path,
-                           split_percentages=[0.5, 0.25, 0.25]):
+def get_dataset_partitions(files_path: Path, split_percentages=[0.8, 0.1,
+                                                                0.1]):
 
     if (sum(split_percentages) != 1):
         print(
@@ -36,7 +36,20 @@ def get_dataset_partitions(files_path: Path,
     raw_data_file_list = data_loader.get_files_in_directory(files_path, '.h5')
     random.shuffle(raw_data_file_list)
 
-    return raw_data_file_list
+    num_train_files = int(len(raw_data_file_list) * split_percentages[0])
+    num_validation_files = int(len(raw_data_file_list) * split_percentages[1])
+    num_test_files = int(len(raw_data_file_list) * split_percentages[2])
+
+    dataset_partition_list = [[], [], []]
+
+    dataset_partition_list[2] = raw_data_file_list[0:num_test_files]
+    dataset_partition_list[1] = raw_data_file_list[num_test_files:
+                                                   num_test_files +
+                                                   num_validation_files]
+    dataset_partition_list[0] = raw_data_file_list[num_test_files +
+                                                   num_validation_files:]
+
+    return dataset_partition_list
 
 
 def parse_data(demo_files_paths: List[Path],
