@@ -756,6 +756,7 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     calcVectorDistance(positionA, positionB) {
+        //Copied form https://gist.github.com/timohausmann/5003280
         let xs = positionA.x - positionB.x,
             ys = positionA.y - positionB.y;
 
