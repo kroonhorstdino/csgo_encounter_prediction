@@ -164,6 +164,15 @@ def get_die_within_seconds_column_names(num_players=10,
     return actual_column_names
 
 
+def get_feature_column_name(feature_name: str, num_players=10):
+    actual_column_names = []
+
+    for player_i in range(num_players):
+        actual_column_names.append(f'f_{player_i}_{feature_name}')
+
+    return actual_column_names
+
+
 def get_num_player_features(column_labels: List[str]):
     def filter_features(feature_label: str):
         return feature_label.startswith('f_')
@@ -221,7 +230,7 @@ def load_config(config_path: Path):
     config = None
     try:
         with open(str(config_path)) as json_file:
-            print("Loading config from " + config_path)
+            print("Loading config from " + str(config_path))
             config = json.load(json_file)
     except:
         print("Couldn't load config file, using default one")

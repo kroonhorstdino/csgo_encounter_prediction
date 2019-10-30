@@ -55,6 +55,9 @@ class CounterStrikeDataset(Dataset):
             Batches -> Also always power of 2
         '''
 
+        #TODO: Choose columns based on feature set in training config
+        self.feature_set = train_config["training"]["feature_set"]
+
         self.batch_row_size = train_config["training"]["batch_size"]
 
         self.num_chunks = len(self.dataset_files)

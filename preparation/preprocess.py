@@ -19,6 +19,9 @@ import data_loader
 sys.path.append(Path.cwd().parent)
 sys.path.append(Path.cwd())
 
+features_info = data_loader.load_config(
+    Path('preparation') / 'features_info.json')
+
 
 def add_die_within_sec_labels(df: pd.DataFrame,
                               time_window_to_next_death: int = 5,
@@ -112,25 +115,64 @@ def undersample_pure_not_die_ticks(df: pd.DataFrame,
 
 def one_hot_encoding_weapons(df: pd.DataFrame):
     '''
-            JAVASCRIPT CODE
-            for (const weaponIndex in itemDefinitionIndexMap) {
-                # Don't add other knifes to the feature list, all knifes will be mapped to "normal knife" (index 42)
-                if (this.isDifferentKnifeWeaponIndex(weaponIndex)) continue;
-
-                const weaponClassName = `${itemDefinitionIndexMap[weaponIndex].className}_${weaponIndex}`;
-
-                playerFeatures.push({
-                    id: weaponClassName,
-                    // Uppercase for first letter(I don't know why exactly)
-                    title: (weaponClassName.substring(0, 1)[0].toUpperCase()).concat(
-                        weaponClassName.substring(1))
-                });}
+        Adds one hot encoding for weapons of player
+        Removes 'CurrentWeapon' row for each player
     '''
+
+    itemDefinitionIndexMap = features_info["itemDefinitionIndexMap"]
+    weapon_one_hot_ids_column_name = []
+    actual_column_names = []
+
+    for index in itemDefinitionIndexMap:
+        if (int(index) >= 500 or int(index) == 59):  # Indecies of other knifes
+            continue
+
+        weapon_one_hot_ids_column_name.append(index)
+
+    weapon_one_hot_ids_column_name.sort(key=int)
+
+    #For each feature name, generate feature name for each player
+    for weapon_id in weapon_one_hot_ids_column_name:
+        actual_column_names.extend(
+            data_loader.get_feature_column_name(f'Weapon_{weapon_id}'))
+
+    weapon_id_df = pd.DataFrame(columns=actual_column_names,
+                                index=df.index,
+                                dtype=np.float32)
+
+    weapon_id_df.sort_index(axis=1, inplace=True)
+
+    for player_i in range(
+            10):  #For each player one hot encode to each weapon id
+        player_current_weapon_column_name = data_loader.get_feature_column_name(
+            'CurrentWeapon')[
+                player_i]  # Name of column with ids of current weapon
+        for index, weapon_index in df[
+                player_current_weapon_column_name].iteritems():
+
+            if weapon_index == 0:
+                weapon_index = 42  #FIXME: Data should not contain any zeroes in CurrentWeapon!!!
+
+            weapon_id_column_name = f'f_{player_i}_Weapon_{int(weapon_index)}'
+
+            #weapon_id_df[weapon_id_column_name].loc[index] = 1  #Weapon is used at this point in time for this player
+            weapon_id_df.iat[weapon_id_df.index.get_loc(index),
+                             weapon_id_df.columns.get_loc(weapon_id_column_name
+                                                          )] = 1
+
+    weapon_id_df.fillna(0, inplace=True)
+
+    current_weapon_columns_names = data_loader.get_feature_column_name(
+        'CurrentWeapon')
+    df.drop(columns=current_weapon_columns_names, inplace=True)
+
+    df = pd.concat([df, weapon_id_df])
 
     return df
 
 
 if __name__ == "__main__":
-    # lst = create_dataset.generate_dataset_file_partitions(Path.cwd() / 'parsed_files')
-    # randomize_processed_files(lst)
+    one_hot_encoding_weapons(
+        data_loader.load_csv_as_df(
+            Path('parsed_files/sprout-vs-ex-epsilon-m3-overpass.csv')))
     pass

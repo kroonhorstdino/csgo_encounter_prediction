@@ -14,6 +14,6 @@
 		"feature_set": "training_all",
 		"batch_size": 128,
 		"num_epoch": 50000,
-		"lr": 0.001
+		"lr": 0.0005
 	}
 }

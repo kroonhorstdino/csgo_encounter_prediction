@@ -10,7 +10,7 @@ const featuresInfoList = require("../preparation/features_info.json");
 /**
  * TODOs
  * TODO: Parse angles of player
- * TODO: One hot encoce weapons (itemDefinitionIndexMap in features_info.json)
+ * DONE: One hot encoce weapons (itemDefinitionIndexMap in features_info.json)
  */
 
 /**
@@ -344,6 +344,7 @@ class DemoFileParser {
                 tickInfo[
                     `${featureNameStart}_currentWeapon`
                 ] = this.featureGetCorrectWeaponIndex(player.weapon.itemIndex);
+            } else {
             }
 
             /**
@@ -462,7 +463,7 @@ class DemoFileParser {
         }
 
         /*
-            TODO: Hot one encoding somewhere. Do it afterwards in  preprocessing
+            DONE: Hot one encoding somewhere. Do it afterwards in  preprocessing
             for (const weaponIndex in itemDefinitionIndexMap) {
                 //Don't add other knifes to the feature list, all knifes will be mapped to "normal knife" (index 42)
                 if (this.isDifferentKnifeWeaponIndex(weaponIndex)) continue;
