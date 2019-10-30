@@ -1,0 +1,43 @@
+{
+  // Verwendet IntelliSense zum Ermitteln möglicher Attribute.
+  // Zeigen Sie auf vorhandene Attribute, um die zugehörigen Beschreibungen anzuzeigen.
+  // Weitere Informationen finden Sie unter https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: prepare_dataset_debug",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/preparation/prepare_dataset.py",
+      "console": "integratedTerminal",
+      "args": ["-m", "preprocess", "-vvvv"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program",
+      "program": "${workspaceFolder}/${relativeFile}"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch in Debug Mode",
+      "program": "${workspaceFolder}/${relativeFile}",
+      "args": ["true"]
+    },
+    {
+      "name": "Python: Aktuelle Datei",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/${relativeFile}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Python: CSGO Test",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/training/csgotest.py",
+      "console": "integratedTerminal"
+    }
+  ]
+}

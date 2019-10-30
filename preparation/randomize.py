@@ -7,6 +7,8 @@ import time
 from pathlib import Path
 from typing import List
 
+from tqdm import tqdm
+
 sys.path.insert(0, str(Path.cwd() / 'preparation/'))
 
 import data_loader

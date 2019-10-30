@@ -1,0 +1,473 @@
+{
+	"identifiers": {
+		"feature_prefix": "f_",
+		"label_prefix": "l_"
+	},
+	"demo_features": [
+		{
+			"id": "round",
+			"title": "Round",
+			"type": "int"
+		},
+		{
+			"id": "tick",
+			"title": "Tick",
+			"type": "int"
+		}
+	],
+	"player_features_sets": {
+		"basic": [
+			"basic",
+			"player_movement",
+			"tactical",
+			"distance_to_enemy"
+		],
+		"parse_correct_all": [
+			"basic",
+			"player_movement",
+			"distance_to_ally",
+			"distance_to_enemy",
+			"tactical",
+			"weapon_basic"
+		],
+		"training_all": [],
+		"parse_all": [
+			"basic",
+			"player_movement",
+			"distance_to_ally",
+			"distance_to_enemy",
+			"angle_to_enemy",
+			"tactical",
+			"weapon_basic",
+			"weapon_detail",
+			"locations"
+		]
+	},
+	"player_features": {
+		"basic": [
+			{
+				"id": "isAlive",
+				"title": "IsAlive",
+				"type": "int"
+			},
+			{
+				"id": "health",
+				"title": "Health",
+				"type": "int"
+			},
+			{
+				"id": "armor",
+				"title": "Armor",
+				"type": "int"
+			}
+		],
+		"player_movement": [
+			{
+				"id": "positionX",
+				"title": "PositionX",
+				"type": "float32"
+			},
+			{
+				"id": "positionY",
+				"title": "PositionY",
+				"type": "float32"
+			},
+			{
+				"id": "positionZ",
+				"title": "PositionZ",
+				"type": "float32"
+			},
+			{
+				"id": "velocityX",
+				"title": "VelocityX",
+				"type": "float32"
+			},
+			{
+				"id": "velocityY",
+				"title": "VelocityY",
+				"type": "float32"
+			},
+			{
+				"id": "velocityZ",
+				"title": "VelocityZ",
+				"type": "float32"
+			}
+		],
+		"distance_to_ally": [
+			{
+				"id": "distanceToAlly_1",
+				"title": "DistanceToAlly_1",
+				"type": "float32"
+			},
+			{
+				"id": "distanceToAlly_2",
+				"title": "DistanceToAlly_2",
+				"type": "float32"
+			},
+			{
+				"id": "distanceToAlly_3",
+				"title": "DistanceToAlly_3",
+				"type": "float32"
+			},
+			{
+				"id": "distanceToAlly_4",
+				"title": "DistanceToAlly_4",
+				"type": "float32"
+			}
+		],
+		"distance_to_enemy": [
+			{
+				"id": "distanceToEnemy_0",
+				"title": "DistanceToEnemy_0",
+				"type": "float32"
+			},
+			{
+				"id": "distanceToEnemy_1",
+				"title": "DistanceToEnemy_1",
+				"type": "float32"
+			},
+			{
+				"id": "distanceToEnemy_2",
+				"title": "DistanceToEnemy_2",
+				"type": "float32"
+			},
+			{
+				"id": "distanceToEnemy_3",
+				"title": "DistanceToEnemy_3",
+				"type": "float32"
+			},
+			{
+				"id": "distanceToEnemy_4",
+				"title": "DistanceToEnemy_4",
+				"type": "float32"
+			}
+		],
+		"angle_to_enemy": [
+			{
+				"id": "angleAbsoluteToEnemy_0",
+				"title": "angleAbsoluteToEnemy_0",
+				"type": "float32"
+			},
+			{
+				"id": "angleAbsoluteToEnemy_1",
+				"title": "angleAbsoluteToEnemy_1",
+				"type": "float32"
+			},
+			{
+				"id": "angleAbsoluteToEnemy_2",
+				"title": "angleAbsoluteToEnemy_2",
+				"type": "float32"
+			},
+			{
+				"id": "angleAbsoluteToEnemy_3",
+				"title": "angleAbsoluteToEnemy_3",
+				"type": "float32"
+			},
+			{
+				"id": "angleAbsoluteToEnemy_4",
+				"title": "angleAbsoluteToEnemy_4",
+				"type": "float32"
+			}
+		],
+		"tactical": [
+			{
+				"id": "hasHelmet",
+				"title": "HasHelmet",
+				"type": "int"
+			},
+			{
+				"id": "isSpotted",
+				"title": "IsSpotted",
+				"type": "int"
+			},
+			{
+				"id": "isScoped",
+				"title": "IsScoped",
+				"type": "int"
+			},
+			{
+				"id": "isDefusing",
+				"title": "IsDefusing",
+				"type": "int"
+			}
+		],
+		"weapon_basic": [
+			{
+				"id": "equipmentValue",
+				"title": "EquipmentValue",
+				"type": "int"
+			},
+			{
+				"id": "currentWeapon",
+				"title": "CurrentWeapon",
+				"type": "int"
+			}
+		],
+		"weapon_detail": [
+			{
+				"id": "clipAmmoPrim",
+				"title": "ClipAmmoPrim",
+				"type": "int"
+			},
+			{
+				"id": "reserveAmmoPrim",
+				"title": "ReserveAmmoPrim",
+				"type": "int"
+			},
+			{
+				"id": "clipAmmoSec",
+				"title": "ClipAmmoSec",
+				"type": "int"
+			},
+			{
+				"id": "reserveAmmoSec",
+				"title": "ReserveAmmoSec",
+				"type": "int"
+			}
+		],
+		"locations": [
+			{
+				"id": "placeName",
+				"title": "PlaceName",
+				"type": "str"
+			}
+		]
+	},
+	"base_labels": [
+		{}
+	],
+	"itemDefinitionIndexMap": {
+		"1": {
+			"itemName": "Desert Eagle",
+			"className": "weapon_deagle"
+		},
+		"2": {
+			"itemName": "Dual Berettas",
+			"className": "weapon_elite"
+		},
+		"3": {
+			"itemName": "Five-SeveN",
+			"className": "weapon_fiveseven"
+		},
+		"4": {
+			"itemName": "Glock-18",
+			"className": "weapon_glock"
+		},
+		"7": {
+			"itemName": "AK-47",
+			"className": "weapon_ak47"
+		},
+		"8": {
+			"itemName": "AUG",
+			"className": "weapon_aug"
+		},
+		"9": {
+			"itemName": "AWP",
+			"className": "weapon_awp"
+		},
+		"10": {
+			"itemName": "FAMAS",
+			"className": "weapon_famas"
+		},
+		"11": {
+			"itemName": "G3SG1",
+			"className": "weapon_g3sg1"
+		},
+		"13": {
+			"itemName": "Galil AR",
+			"className": "weapon_galilar"
+		},
+		"14": {
+			"itemName": "M249",
+			"className": "weapon_m249"
+		},
+		"16": {
+			"itemName": "M4A4",
+			"className": "weapon_m4a1"
+		},
+		"17": {
+			"itemName": "MAC-10",
+			"className": "weapon_mac10"
+		},
+		"19": {
+			"itemName": "P90",
+			"className": "weapon_p90"
+		},
+		"23": {
+			"itemName": "MP5-SD",
+			"className": "weapon_mp5sd"
+		},
+		"24": {
+			"itemName": "UMP-45",
+			"className": "weapon_ump45"
+		},
+		"25": {
+			"itemName": "XM1014",
+			"className": "weapon_xm1014"
+		},
+		"26": {
+			"itemName": "PP-Bizon",
+			"className": "weapon_bizon"
+		},
+		"27": {
+			"itemName": "MAG-7",
+			"className": "weapon_mag7"
+		},
+		"28": {
+			"itemName": "Negev",
+			"className": "weapon_negev"
+		},
+		"29": {
+			"itemName": "Sawed-Off",
+			"className": "weapon_sawedoff"
+		},
+		"30": {
+			"itemName": "Tec-9",
+			"className": "weapon_tec9"
+		},
+		"31": {
+			"itemName": "Zeus x27",
+			"className": "weapon_taser"
+		},
+		"32": {
+			"itemName": "P2000",
+			"className": "weapon_hkp2000"
+		},
+		"33": {
+			"itemName": "MP7",
+			"className": "weapon_mp7"
+		},
+		"34": {
+			"itemName": "MP9",
+			"className": "weapon_mp9"
+		},
+		"35": {
+			"itemName": "Nova",
+			"className": "weapon_nova"
+		},
+		"36": {
+			"itemName": "P250",
+			"className": "weapon_p250"
+		},
+		"38": {
+			"itemName": "SCAR-20",
+			"className": "weapon_scar20"
+		},
+		"39": {
+			"itemName": "SG 553",
+			"className": "weapon_sg556"
+		},
+		"40": {
+			"itemName": "SSG 08",
+			"className": "weapon_ssg08"
+		},
+		"42": {
+			"itemName": "Knife",
+			"className": "weapon_knife"
+		},
+		"43": {
+			"itemName": "Flashbang",
+			"className": "weapon_flashbang"
+		},
+		"44": {
+			"itemName": "High Explosive Grenade",
+			"className": "weapon_hegrenade"
+		},
+		"45": {
+			"itemName": "Smoke Grenade",
+			"className": "weapon_smokegrenade"
+		},
+		"46": {
+			"itemName": "Molotov",
+			"className": "weapon_molotov"
+		},
+		"47": {
+			"itemName": "Decoy Grenade",
+			"className": "weapon_decoy"
+		},
+		"48": {
+			"itemName": "Incendiary Grenade",
+			"className": "weapon_incgrenade"
+		},
+		"49": {
+			"itemName": "C4 Explosive",
+			"className": "weapon_c4"
+		},
+		"59": {
+			"itemName": "Knife",
+			"className": "weapon_knife_t"
+		},
+		"60": {
+			"itemName": "M4A1-S",
+			"className": "weapon_m4a1_silencer"
+		},
+		"61": {
+			"itemName": "USP-S",
+			"className": "weapon_usp_silencer"
+		},
+		"63": {
+			"itemName": "CZ75-Auto",
+			"className": "weapon_cz75a"
+		},
+		"64": {
+			"itemName": "R8 Revolver",
+			"className": "weapon_revolver"
+		},
+		"500": {
+			"itemName": "Bayonet",
+			"className": "weapon_bayonet"
+		},
+		"505": {
+			"itemName": "Flip Knife",
+			"className": "weapon_knife_flip"
+		},
+		"506": {
+			"itemName": "Gut Knife",
+			"className": "weapon_knife_gut"
+		},
+		"507": {
+			"itemName": "Karambit",
+			"className": "weapon_knife_karambit"
+		},
+		"508": {
+			"itemName": "M9 Bayonet",
+			"className": "weapon_knife_m9_bayonet"
+		},
+		"509": {
+			"itemName": "Huntsman Knife",
+			"className": "weapon_knife_tactical"
+		},
+		"512": {
+			"itemName": "Falchion Knife",
+			"className": "weapon_knife_falchion"
+		},
+		"514": {
+			"itemName": "Bowie Knife",
+			"className": "weapon_knife_survival_bowie"
+		},
+		"515": {
+			"itemName": "Butterfly Knife",
+			"className": "weapon_knife_butterfly"
+		},
+		"516": {
+			"itemName": "Shadow Dag",
+			"className": "weapon_knife_push"
+		},
+		"519": {
+			"itemName": "Ursus Knife",
+			"className": "weapon_knife_ursus"
+		},
+		"520": {
+			"itemName": "Navaja Knife",
+			"className": "weapon_knife_gypsy_jackknife"
+		},
+		"522": {
+			"itemName": "Stiletto Knife",
+			"className": "weapon_knife_stiletto"
+		},
+		"523": {
+			"itemName": "Talon Knife",
+			"className": "weapon_knife_widowmaker"
+		}
+	}
+}

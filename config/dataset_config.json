@@ -4,7 +4,7 @@
     "parsed_files_path": "parsed_files/",
     "processed_files_path": "processed_files/",
     "training_files_path": "training_data/",
-    "validation_files_path": "training_data/"
+    "test_files_path": "test_data/"
   },
   "preprocessing": {
     "death_time_window": 5
