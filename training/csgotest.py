@@ -47,16 +47,13 @@ class CounterStrikeDataset(Dataset):
         else:
             self.dataset_files = dataset_files_partition[1]
 
-        # Small sample of dataset
-        dataset_sample = data_loader.load_h5_as_df(self.dataset_files[0],
-                                                   False)
-        '''
-            Chunks -> randomized files. Always size of a power of 2
-            Batches -> Also always power of 2
-        '''
-
         #TODO: Choose columns based on feature set in training config
         self.feature_set = train_config["training"]["feature_set"]
+        self.features_column_names = data_loader.get_column_names_from_features_set(
+            self.feature_set)
+        self.labels_column_names = data_loader.get_die_within_seconds_column_names(
+        )
+        self.all_column_names = self.features_column_names + self.labels_column_names
 
         self.batch_row_size = train_config["training"]["batch_size"]
 
@@ -74,6 +71,15 @@ class CounterStrikeDataset(Dataset):
         self.death_time_window = data_config["preprocessing"][
             "death_time_window"]
 
+        # Small sample of dataset
+        dataset_sample = data_loader.load_h5_as_df(self.dataset_files[0],
+                                                   False,
+                                                   self.all_column_names)
+        '''
+            Chunks -> randomized files. Always size of a power of 2
+            Batches -> Also always power of 2
+        '''
+
         self.num_players = 10
         self.num_all_player_features = data_loader.get_num_player_features(
             dataset_sample.columns)
@@ -88,7 +94,9 @@ class CounterStrikeDataset(Dataset):
         chunk_file = self.dataset_files[self.batch_index_to_chunk_index(index)]
         #start_index, end_index = self.get_indicies_in_chunk(index) #NOTE: If you want a specific area of chunk. Only without balancing during loading!
 
-        chunk = data_loader.load_h5_as_df(chunk_file, True)
+        chunk = data_loader.load_h5_as_df(chunk_file,
+                                          True,
+                                          column_names=self.all_column_names)
         # .iloc[start_index:end_index] A batch is going to be loaded from this chunk >batches_per_chunk< times anyways. If random, may be not so bad NOTE: FIXME:
 
         player_features, classification_labels = data_loader.get_minibatch_balanced_player(
@@ -162,7 +170,8 @@ def train_csgo(dataset_config_path: Path,
 
     model = models.SharedWeightsCSGO(
         num_all_player_features=training_set.num_all_player_features,
-        num_labels=10)
+        shared_layer_sizes=train_config["topography"]["shared_layers"],
+        dense_layer_sizes=train_config["topography"]["dense_layers"])
 
     model.to(device)
 
@@ -554,7 +563,7 @@ def train_csgo(dataset_config_path: Path,
 
         if (epoch_i % 100) == 99:
             torch.save(model.state_dict(),
-                       f"modelstr_{run_name}_EPOCH_{epoch_i}.model")
+                       f"models/modelstr_{run_name}_EPOCH_{epoch_i}.model")
 
         #CLI
         train_prog_bar.update()
