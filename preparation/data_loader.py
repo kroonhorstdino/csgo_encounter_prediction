@@ -17,11 +17,12 @@ from torch.utils.data.dataset import Dataset
 '''
 
 
-def get_minibatch_balanced_player(data: pd.DataFrame,
-                                  player_i,
-                                  batch_size=128,
-                                  max_time_to_next_death=5
-                                  ) -> Tuple[List[pd.DataFrame], pd.DataFrame]:
+def get_minibatch_balanced_player(
+        data: pd.DataFrame,
+        player_i,
+        batch_size=128,
+        max_time_to_next_death=5,
+) -> Tuple[List[pd.DataFrame], pd.DataFrame]:
 
     player_dies_mask, player_not_die_mask = get_player_minibatch_mask(
         data, player_i, 5)
@@ -114,28 +115,66 @@ def get_all_player_features_array(df: pd.DataFrame) -> List[pd.DataFrame]:
     return player_features
 
 
-def get_feature_names_from_features_set(feature_set_name: str):
-    ''' TODO:
-        Get all features of the feature set specified in features_info.json
-    '''
-    pass
-
-
-def get_all_player_feature_names_from_set(df_columns,
-                                          feature_set: List[str]) -> List[str]:
-    ''' TODO:
-        From a feature set in the configs, generate the names of the features in the dataframes
-            e.g.: in config: EquipmentValue becomes f_{player}_EquipmentValue for all players
-    '''
-    pass
-
-
 def get_column_indices_from_names(df_columns,
                                   column_names: List[str]) -> List[int]:
     ''' TODO:
         Get the indecies of columns from their names
     '''
     pass
+
+
+def get_column_names_from_features_set(feature_set: str):
+    '''
+        Generates a list of feature names for each player from a feature set.
+        Labels appear as they would in the dataframe or during parsing
+    '''
+
+    actual_column_names = []
+    all_feature_names = []
+
+    for feature_subset_name in FEATURES_INFO["player_features_sets"][
+            feature_set]:
+        all_feature_names.extend(
+            get_feature_names_from_feature_subset(feature_subset_name))
+
+    for feature_name in all_feature_names:
+        actual_column_names.extend(get_feature_column_names(feature_name))
+
+    return actual_column_names
+
+
+def get_one_hot_encoded_weapon_feature_names():
+
+    weapon_one_hot_ids_column_name = []
+    actual_column_names = []
+
+    for index in FEATURES_INFO['itemDefinitionIndexMap']:
+        if (int(index) >= 500 or int(index) == 59):  # Indecies of other knifes
+            continue
+
+        weapon_one_hot_ids_column_name.append(index)
+
+    weapon_one_hot_ids_column_name.sort(key=int)
+
+    #For each feature name, generate feature name for each player
+    for weapon_id in weapon_one_hot_ids_column_name:
+        actual_column_names.extend(
+            get_feature_column_names(f'Weapon_{weapon_id}'))
+
+    return actual_column_names
+
+
+def get_feature_names_from_feature_subset(feature_subset: str):
+    '''
+        Extracts feature names from subset in config. Does not generate names for each player.
+    '''
+
+    feature_name_list = []
+
+    for feature_obj in FEATURES_INFO["player_features"][feature_subset]:
+        feature_name_list.append(feature_obj["title"])
+
+    return feature_name_list
 
 
 def get_isAlive_column_names(num_players: int = 10) -> List[str]:
@@ -164,7 +203,7 @@ def get_die_within_seconds_column_names(num_players=10,
     return actual_column_names
 
 
-def get_feature_column_name(feature_name: str, num_players=10):
+def get_feature_column_names(feature_name: str, num_players=10):
     actual_column_names = []
 
     for player_i in range(num_players):
@@ -201,12 +240,15 @@ def load_csv_as_df(filePath: Path) -> pd.DataFrame:
     df.set_index('Tick', inplace=True)
     # NOTE: Don't drop if still relevant
     df.drop(columns=['Round'], inplace=True)
-    df.fillna(0.0, inplace=True)
+    df = df.filter(like='CurrentWeapon').fillna(42.0, inplace=True)
+    df = df.fillna(0, inplace=True)
 
     return df
 
 
-def load_h5_as_df(filePath: Path, drop_ticks: bool) -> pd.DataFrame:
+def load_h5_as_df(filePath: Path,
+                  drop_ticks: bool,
+                  column_names: List[str] = None) -> pd.DataFrame:
     '''
     Loads .h5 file as dataframe
 
@@ -216,6 +258,9 @@ def load_h5_as_df(filePath: Path, drop_ticks: bool) -> pd.DataFrame:
     # DEBUG: print(filePath)
 
     df = pd.read_hdf(filePath, key='df').astype(np.float32)
+
+    if column_names is not None:
+        df = df[column_names]
 
     if ('Tick' in df.columns and drop_ticks):
         # Reset index and drop it
@@ -233,14 +278,13 @@ def load_config(config_path: Path):
             print("Loading config from " + str(config_path))
             config = json.load(json_file)
     except:
-        print("Couldn't load config file, using default one")
-        with open('config/dataset_config.json') as json_file:
-            config = json.load(json_file)
+        print("Couldn't load this config!")
+        raise
 
     return config
 
 
-features_info = load_config('preparation/features_info.json')
+FEATURES_INFO = load_config('preparation/features_info.json')
 
 # Testing
 if __name__ == "__main__":
@@ -251,3 +295,5 @@ if __name__ == "__main__":
     print(features)
     print(labels)
     '''
+    #print(get_feature_names_from_feature_subset("player_movement"))
+    print(get_column_names_from_features_set("parse_correct_all"))

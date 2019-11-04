@@ -110,7 +110,8 @@ def parse_data(demo_files_paths: List[Path],
 
 def preprocess_data(parsed_csv_files_list: List[Path],
                     processed_files_path: Path,
-                    delete_old_csv: bool = False):
+                    delete_old_csv: bool = False,
+                    time_window_to_next_death: int = 5):
     '''
         Processes data from matches in .csv files to .h5 files that contain all nessecary features for training
         Uses parameters in config #WIP
@@ -130,10 +131,14 @@ def preprocess_data(parsed_csv_files_list: List[Path],
 
         df = data_loader.load_csv_as_df(parsed_csv_file)
 
+        prep_prog_bar.write("Adding 'dies within x seconds' labels for a " +
+                            str(time_window_to_next_death) +
+                            " second time window to dataframe...")
+
         df = preprocess.add_die_within_sec_labels(df)
         df = preprocess.undersample_pure_not_die_ticks(
             df, removal_frac=0.1)  #NOTE: Doesnt work yet
-        df = preprocess.one_hot_encoding_weapons(df)
+        df = preprocess.add_one_hot_encoding_weapons(df)
 
         target_path = str(processed_files_path / f'{parsed_csv_file.stem}.h5')
 
