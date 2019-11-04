@@ -229,7 +229,7 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     isRelevantTick() {
-        return !this.ignoreTicks && this.tickCounter % this.SampleRateModulo == 0;
+        return !this.ignoreTicks && this.tickCounter % this.SampleRateModulo == 0 && !this.demoFile.gameRules.isWarmup && ['first', 'second'].includes(this.demoFile.gameRules.phase);
     }
 
     /**
@@ -318,6 +318,9 @@ class DemoFileParser {
             tickInfo[featureNameStart + "_velocityX"] = player.velocity.x;
             tickInfo[featureNameStart + "_velocityY"] = player.velocity.y;
             tickInfo[featureNameStart + "_velocityZ"] = player.velocity.z;
+
+            tickInfo[featureNameStart + "_eyeAnglePitch"] = player.eyeAngles.pitch
+            tickInfo[featureNameStart + "_eyeAngleYaw"] = player.eyeAngles.yaw
 
             //Health, Armor, etc.
             tickInfo[featureNameStart + "_health"] = player.health;
@@ -574,8 +577,8 @@ let verbosity = 4;
 
 //Its weird, but it works
 if (process.argv[2] == "true") {
-    demoFilePath = "../demo_files/sprout-vs-ex-epsilon-m3-overpass.dem";
-    parsedFilePath = "parsed_files/";
+    demoFilePath = "../../csgo_dataset/demo_files/sprout-vs-ex-epsilon-m3-overpass.dem";
+    parsedFilePath = "../../csgo_dataset/parsed_files/";
 } else {
     //TODO different ways to set paths
     demoFilePath = process.argv[2];
