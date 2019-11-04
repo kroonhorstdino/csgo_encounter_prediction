@@ -10,7 +10,11 @@
       "request": "launch",
       "program": "${workspaceFolder}/preparation/prepare_dataset.py",
       "console": "integratedTerminal",
-      "args": ["-m", "preprocess", "-vvvv"]
+      "args": [
+        "-m",
+        "preprocess",
+        "-vvvv"
+      ]
     },
     {
       "type": "node",
@@ -23,7 +27,9 @@
       "request": "launch",
       "name": "Launch in Debug Mode",
       "program": "${workspaceFolder}/${relativeFile}",
-      "args": ["true"]
+      "args": [
+        "true"
+      ]
     },
     {
       "name": "Python: Aktuelle Datei",

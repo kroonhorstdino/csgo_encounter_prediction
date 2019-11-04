@@ -28,9 +28,22 @@
 			"distance_to_ally",
 			"distance_to_enemy",
 			"tactical",
-			"weapon_basic"
+			"weapon_basic",
+			"angle_basic"
 		],
-		"training_all": [],
+		"remove_in_preprocessing": [
+			"angle_basic",
+			"weapon_basic",
+			"locations"
+		],
+		"training_all": [
+			"basic",
+			"player_movement",
+			"distance_to_ally",
+			"distance_to_enemy",
+			"tactical",
+			"one_hot_encoded_weapon"
+		],
 		"parse_all": [
 			"basic",
 			"player_movement",
@@ -58,6 +71,11 @@
 			{
 				"id": "armor",
 				"title": "Armor",
+				"type": "int"
+			},
+			{
+				"id": "equipmentValue",
+				"title": "EquipmentValue",
 				"type": "int"
 			}
 		],
@@ -142,6 +160,18 @@
 				"type": "float32"
 			}
 		],
+		"angle_basic": [
+			{
+				"id": "eyeAnglePitch",
+				"title": "EyeAnglePitch",
+				"type": "float32"
+			},
+			{
+				"id": "eyeAngleYaw",
+				"title": "EyeAngleYaw",
+				"type": "float32"
+			}
+		],
 		"angle_to_enemy": [
 			{
 				"id": "angleAbsoluteToEnemy_0",
@@ -193,11 +223,6 @@
 		],
 		"weapon_basic": [
 			{
-				"id": "equipmentValue",
-				"title": "EquipmentValue",
-				"type": "int"
-			},
-			{
 				"id": "currentWeapon",
 				"title": "CurrentWeapon",
 				"type": "int"
@@ -230,6 +255,223 @@
 				"id": "placeName",
 				"title": "PlaceName",
 				"type": "str"
+			}
+		],
+		"one_hot_encoded_weapon": [
+			{
+				"id": "Weapon_1",
+				"title": "Weapon_1",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_2",
+				"title": "Weapon_2",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_3",
+				"title": "Weapon_3",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_4",
+				"title": "Weapon_4",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_7",
+				"title": "Weapon_7",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_8",
+				"title": "Weapon_8",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_9",
+				"title": "Weapon_9",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_10",
+				"title": "Weapon_10",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_11",
+				"title": "Weapon_11",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_13",
+				"title": "Weapon_13",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_14",
+				"title": "Weapon_14",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_16",
+				"title": "Weapon_16",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_17",
+				"title": "Weapon_17",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_19",
+				"title": "Weapon_19",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_23",
+				"title": "Weapon_23",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_24",
+				"title": "Weapon_24",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_25",
+				"title": "Weapon_25",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_26",
+				"title": "Weapon_26",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_27",
+				"title": "Weapon_27",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_28",
+				"title": "Weapon_28",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_29",
+				"title": "Weapon_29",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_30",
+				"title": "Weapon_30",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_31",
+				"title": "Weapon_31",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_32",
+				"title": "Weapon_32",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_33",
+				"title": "Weapon_33",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_34",
+				"title": "Weapon_34",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_35",
+				"title": "Weapon_35",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_36",
+				"title": "Weapon_36",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_38",
+				"title": "Weapon_38",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_39",
+				"title": "Weapon_39",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_40",
+				"title": "Weapon_40",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_42",
+				"title": "Weapon_42",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_43",
+				"title": "Weapon_43",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_44",
+				"title": "Weapon_44",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_45",
+				"title": "Weapon_45",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_46",
+				"title": "Weapon_46",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_47",
+				"title": "Weapon_47",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_48",
+				"title": "Weapon_48",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_49",
+				"title": "Weapon_49",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_60",
+				"title": "Weapon_60",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_61",
+				"title": "Weapon_61",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_63",
+				"title": "Weapon_63",
+				"type": "float32"
+			},
+			{
+				"id": "Weapon_64",
+				"title": "Weapon_64",
+				"type": "float32"
 			}
 		]
 	},

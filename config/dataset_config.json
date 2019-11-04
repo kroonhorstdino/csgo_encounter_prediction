@@ -1,10 +1,10 @@
 {
   "paths": {
-    "demo_files_path": "../demo_files/",
-    "parsed_files_path": "parsed_files/",
-    "processed_files_path": "processed_files/",
-    "training_files_path": "training_data/",
-    "test_files_path": "test_data/"
+    "demo_files_path": "../../csgo_dataset/demo_files/",
+    "parsed_files_path": "../../csgo_dataset/parsed_files/",
+    "processed_files_path": "../../csgo_dataset/processed_files/",
+    "training_files_path": "../../csgo_dataset/training_data/",
+    "test_files_path": "../../csgo_dataset/test_data/"
   },
   "preprocessing": {
     "death_time_window": 5
