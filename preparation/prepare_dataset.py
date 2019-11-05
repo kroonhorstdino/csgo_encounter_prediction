@@ -286,7 +286,7 @@ if __name__ == '__main__':
     if (args.config):
         config_path = args.config
 
-    config = data_loader.load_config(config_path)
+    config = data_loader.load_json(config_path)
 
     if (args.mode != None):
         if (args.mode == 'all'):

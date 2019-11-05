@@ -5,7 +5,8 @@ const demofile = require("demofile");
 const path = require("path");
 
 const config = require("../config/dataset_config.json");
-const featuresInfoList = require("../preparation/features_info.json");
+const featuresInfoList = require("../config/features_info.json");
+//const itemDefinitionIndexMapConfig = require("../config/item_definition_index_map.json")
 
 /**
  * TODOs
@@ -17,7 +18,7 @@ const featuresInfoList = require("../preparation/features_info.json");
  * Data of all weapons, needed for one hot encoding
  * Taken from demofile source code and removed unneeded entries (knifes, etc.)
  */
-const itemDefinitionIndexMap = featuresInfoList["itemDefinitionIndexMap"];
+//const itemDefinitionIndexMap = itemDefinitionIndexMapConfig["itemDefinitionIndexMap"];
 
 class DemoFileParser {
     constructor(demoFilePath, targetDirectory, verbosity = 1) {

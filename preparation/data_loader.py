@@ -148,7 +148,7 @@ def get_one_hot_encoded_weapon_feature_names():
     weapon_one_hot_ids_column_name = []
     actual_column_names = []
 
-    for index in FEATURES_INFO['itemDefinitionIndexMap']:
+    for index in ITEM_DEFINITION_INDEX_MAP['itemDefinitionIndexMap']:
         if (int(index) >= 500 or int(index) == 59):  # Indecies of other knifes
             continue
 
@@ -271,20 +271,22 @@ def load_h5_as_df(filePath: Path,
     return df
 
 
-def load_config(config_path: Path):
+def load_json(config_path: Path):
     config = None
     try:
         with open(str(config_path)) as json_file:
-            print("Loading config from " + str(config_path))
+            print("Loading JSON file " + str(config_path))
             config = json.load(json_file)
     except:
-        print("Couldn't load this config!")
+        print("Couldn't load this JSON file!")
         raise
 
     return config
 
 
-FEATURES_INFO = load_config('preparation/features_info.json')
+FEATURES_INFO: dict = load_json('config/features_info.json')
+ITEM_DEFINITION_INDEX_MAP: dict = load_json(
+    'config/item_definition_index_map.json')
 
 # Testing
 if __name__ == "__main__":

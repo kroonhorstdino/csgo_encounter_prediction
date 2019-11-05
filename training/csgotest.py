@@ -136,8 +136,8 @@ def train_csgo(dataset_config_path: Path,
     #TODO:
     log_every_num_batches = 250 - (50 * min((4, args.verbose)))
 
-    train_config = data_loader.load_config(train_config_path)
-    dataset_config = data_loader.load_config(dataset_config_path)
+    train_config = data_loader.load_json(train_config_path)
+    dataset_config = data_loader.load_json(dataset_config_path)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda:0" if use_cuda else "cpu")
