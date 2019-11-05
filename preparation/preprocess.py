@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+import time
+import numbers
+import math
 
 import torch
 import torch.nn as nn
@@ -19,11 +22,68 @@ import data_loader
 sys.path.append(Path.cwd().parent)
 sys.path.append(Path.cwd())
 
-FEATURES_INFO = data_loader.load_config(
-    Path('preparation') / 'features_info.json')
+FEATURES_INFO = data_loader.load_json(Path('config') / 'features_info.json')
+#DATASET_CONFIG = data_loader.load_json(Path('config') / 'dataset_config.json')
 
 EYEANGLES_COLUMN_NAMES = data_loader.get_feature_column_names(
     'EyeAnglePitch') + data_loader.get_feature_column_names('EyeAngleYaw')
+
+
+class vec3():
+    def __init__(self, x, y, z):
+        (self.x, self.y, self.z) = (x, y, z)
+
+    def __mul__(self, other):
+        return vec3(self.x * other, self.y * other, self.z * other)
+
+    def __add__(self, other):
+        return vec3(self.x + other.x, self.y + other.y, self.z + other.z)
+
+    def __sub__(self, other):
+        return vec3(self.x - other.x, self.y - other.y, self.z - other.z)
+
+    def dot(self, other):
+        return (self.x * other.x) + (self.y * other.y) + (self.z * other.z)
+
+    def __abs__(self):
+        return self.dot(self)
+
+    def norm(self):
+        mag = np.sqrt(abs(self))
+        return self * (1.0 / np.where(mag == 0, 1, mag))
+
+    def components(self):
+        return (self.x, self.y, self.z)
+
+    def extract(self, cond):
+        return vec3(extract(cond, self.x), extract(cond, self.y),
+                    extract(cond, self.z))
+
+    def place(self, cond):
+        r = vec3(np.zeros(cond.shape), np.zeros(cond.shape),
+                 np.zeros(cond.shape))
+        np.place(r.x, cond, self.x)
+        np.place(r.y, cond, self.y)
+        np.place(r.z, cond, self.z)
+        return r
+
+
+class Sphere:
+    def __init__(self, center, radius, player_i):
+        self.c = center
+        self.r = radius
+        self.player_i = player_i
+
+    def intersects(self, O, D):
+        b = 2 * D.dot(O - self.c)
+        c = abs(self.c) + abs(O) - 2 * self.c.dot(O) - (self.r * self.r)
+        disc = (b**2) - (4 * c)
+        sq = np.sqrt(np.maximum(0, disc))
+        h0 = (-b - sq) / 2
+        h1 = (-b + sq) / 2
+        h = np.where((h0 > 0) & (h0 < h1), h0, h1)
+        pred = (disc > 0) & (h > 0)
+        return pred
 
 
 def add_die_within_sec_labels(df: pd.DataFrame,
@@ -74,6 +134,7 @@ def add_die_within_sec_labels(df: pd.DataFrame,
                 # debug_test_sample = df.iloc[int(index_location)]
 
                 #TODO: Test new labelling!
+                #FIXME: Use iat insted of loc!
                 #If player is already dead in past tick
                 if (df[player_isAlive_column_name].loc[past_tick] == 0):
                     label_deathState_column_list[index_location] = 2
@@ -109,140 +170,6 @@ def undersample_pure_not_die_ticks(df: pd.DataFrame,
     return df
 
 
-#TODO: Add one hot angles
-def add_one_hot_encoding_angles(df: pd.DataFrame):
-    '''
-        Adds one hot encoding for angle to player (is a raycast within radius of enemy player)
-        Removes 'EyeAnglesPitch' and 'EyeAnglesYaw' columns for each player
-    '''
-    '''
-    def extract(cond, x):
-    if isinstance(x, numbers.Number):
-        return x
-    else:
-        return np.extract(cond, x)
-
-class vec3():
-    def __init__(self, x, y, z):
-        (self.x, self.y, self.z) = (x, y, z)
-    def __mul__(self, other):
-        return vec3(self.x * other, self.y * other, self.z * other)
-    def __add__(self, other):
-        return vec3(self.x + other.x, self.y + other.y, self.z + other.z)
-    def __sub__(self, other):
-        return vec3(self.x - other.x, self.y - other.y, self.z - other.z)
-    def dot(self, other):
-        return (self.x * other.x) + (self.y * other.y) + (self.z * other.z)
-    def __abs__(self):
-        return self.dot(self)
-    def norm(self):
-        mag = np.sqrt(abs(self))
-        return self * (1.0 / np.where(mag == 0, 1, mag))
-    def components(self):
-        return (self.x, self.y, self.z)
-    def extract(self, cond):
-        return vec3(extract(cond, self.x),
-                    extract(cond, self.y),
-                    extract(cond, self.z))
-    def place(self, cond):
-        r = vec3(np.zeros(cond.shape), np.zeros(cond.shape), np.zeros(cond.shape))
-        np.place(r.x, cond, self.x)
-        np.place(r.y, cond, self.y)
-        np.place(r.z, cond, self.z)
-        return r
-rgb = vec3
-
-(w, h) = (400, 300)         # Screen size
-L = vec3(5, 5., -10)        # Point light position
-E = vec3(0., 0.35, -1.)     # Eye position
-FARAWAY = 1.0e39            # an implausibly huge distance
-
-def raytrace(O, D, scene, bounce = 0):
-    # O is the ray origin, D is the normalized ray direction
-    # scene is a list of Sphere objects (see below)
-    # bounce is the number of the bounce, starting at zero for camera rays
-
-    distances = [s.intersect(O, D) for s in scene]
-    nearest = reduce(np.minimum, distances)
-    color = rgb(0, 0, 0)
-    for (s, d) in zip(scene, distances):
-        hit = (nearest != FARAWAY) & (d == nearest)
-        if np.any(hit):
-            dc = extract(hit, d)
-            Oc = O.extract(hit)
-            Dc = D.extract(hit)
-            cc = s.light(Oc, Dc, dc, scene, bounce)
-            color += cc.place(hit)
-    return color
-
-class Sphere:
-    def __init__(self, center, r, diffuse, mirror = 0.5):
-        self.c = center
-        self.r = r
-        self.diffuse = diffuse
-        self.mirror = mirror
-
-    def intersect(self, O, D):
-        b = 2 * D.dot(O - self.c)
-        c = abs(self.c) + abs(O) - 2 * self.c.dot(O) - (self.r * self.r)
-        disc = (b ** 2) - (4 * c)
-        sq = np.sqrt(np.maximum(0, disc))
-        h0 = (-b - sq) / 2
-        h1 = (-b + sq) / 2
-        h = np.where((h0 > 0) & (h0 < h1), h0, h1)
-        pred = (disc > 0) & (h > 0)
-        return np.where(pred, h, FARAWAY)
-
-    def diffusecolor(self, M):
-        return self.diffuse
-
-    def light(self, O, D, d, scene, bounce):
-        M = (O + D * d)                         # intersection point
-        N = (M - self.c) * (1. / self.r)        # normal
-        toL = (L - M).norm()                    # direction to light
-        toO = (E - M).norm()                    # direction to ray origin
-        nudged = M + N * .0001                  # M nudged to avoid itself
-
-        # Shadow: find if the point is shadowed or not.
-        # This amounts to finding out if M can see the light
-        light_distances = [s.intersect(nudged, toL) for s in scene]
-        light_nearest = reduce(np.minimum, light_distances)
-        seelight = light_distances[scene.index(self)] == light_nearest
-
-        # Ambient
-        color = rgb(0.05, 0.05, 0.05)
-
-        # Lambert shading (diffuse)
-        lv = np.maximum(N.dot(toL), 0)
-        color += self.diffusecolor(M) * lv * seelight
-
-        # Reflection
-        if bounce < 2:
-            rayD = (D - N * 2 * D.dot(N)).norm()
-            color += raytrace(nudged, rayD, scene, bounce + 1) * self.mirror
-
-        # Blinn-Phong shading (specular)
-        phong = N.dot((toL + toO).norm())
-        color += rgb(1, 1, 1) * np.power(np.clip(phong, 0, 1), 50) * seelight
-        return color
-
-class CheckeredSphere(Sphere):
-    def diffusecolor(self, M):
-        checker = ((M.x * 2).astype(int) % 2) == ((M.z * 2).astype(int) % 2)
-        return self.diffuse * checker
-
-scene = [
-    Sphere(vec3(.75, .1, 1.), .6, rgb(0, 0, 1)),
-    Sphere(vec3(-.75, .1, 2.25), .6, rgb(.5, .223, .5)),
-    Sphere(vec3(-2.75, .1, 3.5), .6, rgb(1., .572, .184)),
-    CheckeredSphere(vec3(0,-99999.5, 0), 99999, rgb(.75, .75, .75), 0.25),
-    ]
-    '''
-
-    df.drop(columns=EYEANGLES_COLUMN_NAMES, inplace=True)
-    return df
-
-
 def add_one_hot_encoding_weapons(df: pd.DataFrame):
     '''
         Adds one hot encoding for weapons of player. All knifes are mapped to id 42
@@ -252,11 +179,11 @@ def add_one_hot_encoding_weapons(df: pd.DataFrame):
     actual_column_names = data_loader.get_one_hot_encoded_weapon_feature_names(
     )
 
-    weapon_id_df = pd.DataFrame(columns=actual_column_names,
-                                index=df.index,
-                                dtype=np.float32)
+    one_hot_weapon_df = pd.DataFrame(columns=actual_column_names,
+                                     index=df.index,
+                                     dtype=np.float32)
 
-    weapon_id_df.sort_index(axis=1, inplace=True)
+    one_hot_weapon_df.sort_index(axis=1, inplace=True)
 
     for player_i in range(
             10):  #For each player one hot encode to each weapon id
@@ -271,22 +198,151 @@ def add_one_hot_encoding_weapons(df: pd.DataFrame):
 
             weapon_id_column_name = f'f_{player_i}_Weapon_{int(weapon_index)}'
 
+            #FIXME: Use iat insted of loc!
             #weapon_id_df[weapon_id_column_name].loc[index] = 1  #Weapon is used at this point in time for this player
-            weapon_id_df.at[index, weapon_id_column_name] = 1
+            one_hot_weapon_df.at[index, weapon_id_column_name] = 1
 
-    weapon_id_df.fillna(0, inplace=True)
+    one_hot_weapon_df.fillna(0, inplace=True)
 
     current_weapon_columns_names = data_loader.get_feature_column_names(
         'CurrentWeapon')
     df.drop(columns=current_weapon_columns_names, inplace=True)
 
-    df = pd.concat([df, weapon_id_df], sort=True)
+    df = pd.concat([df, one_hot_weapon_df], sort=True)
 
     return df
 
 
+#TODO: Add one hot angles
+def add_one_hot_encoding_angles(df: pd.DataFrame, discrete=True):
+    '''
+        Adds one hot encoding for angle to player (is a raycast within radius of enemy player)
+        Removes 'EyeAnglesPitch' and 'EyeAnglesYaw' columns for each player
+    '''
+
+    #STOLEN FROM https://github.com/jamesbowman/raytrace/blob/master/rt3.py
+
+    #Iterate through rows
+    for index_label in df.index:
+        player_positions_vec3 = all_player_position_to_vec3(df, index_label)
+        player_looking_directions_vec3 = all_player_eyeAngles_to_direction_vec3(
+            df, index_label)
+
+        player_spheres = np.array(
+            generate_player_spheres(player_positions_vec3, 5))
+
+        #Iterate through all players and their positions and angles
+        for player_i, player_position, player_looking_direction in zip(
+                range(10), player_positions_vec3,
+                player_looking_directions_vec3):
+
+            #Get all intersections of ray shot from player with other spheres
+            get_player_aim_on_enemy(player_position, player_looking_direction,
+                                    np.delete(player_spheres, player_i))
+
+            #iterate through enemies
+            for enemy_i in range(5):
+
+                #Indexing for list is reversed due to generating of multiple feature column name lists
+                df.at[index_label, AIM_ON_ENEMY_COLUMN_NAMES[enemy_i]
+                      [player_i]]
+            #TODO: Finish calculation of angles
+
+    df.drop(columns=EYEANGLES_COLUMN_NAMES, inplace=True)
+    return df
+
+
+def get_player_aim_on_enemy(player_position: vec3, player_direction: vec3,
+                            target_spheres: List[Sphere]):
+    # O is the ray origin, D is the normalized ray direction
+    # player_spheres are the custom sphere objects of players
+    # Returns one hot encoded array for 1 aim on enemy or 0 no aim on enemy
+
+    target_spheres.sort(lambda sph: sph.player_i)
+
+    player_raycast_hits = [
+        target_sphere.intersects(player_position, player_direction)
+        for target_sphere in target_spheres
+    ]
+
+    return player_raycast_hits
+
+
+def generate_player_spheres(player_positions: List[vec3], radius: float):
+    player_spheres = []
+    #TODO: Do player spheres
+
+    return player_spheres
+
+
+def all_player_position_to_vec3(df: pd.DataFrame, index_label) -> List[vec3]:
+    all_player_position_as_vec3_list = []
+
+    row = df.loc[index_label]  # Row as series
+
+    for player_i in range(10):
+        #Add new vector
+        all_player_position_as_vec3_list.append(
+            vec3(row[VELOCITYX_COLUMN_NAMES[player_i]],
+                 row[VELOCITYY_COLUMN_NAMES[player_i]],
+                 row[VELOCITYZ_COLUMN_NAMES[player_i]]))
+
+    return all_player_position_as_vec3_list
+
+
+def all_player_eyeAngles_to_direction_vec3(df: pd.DataFrame,
+                                           index_label) -> List[vec3]:
+    '''
+        Calculates and returns all looking direction vectors of players in a labelled tick
+        NOTE: Based on CS:GO/source coordinate system: https://developer.valvesoftware.com/wiki/Coordinates
+        Vectors are calculated based on pitch and yaw of player
+    '''
+
+    #Pitch Tipping nose up and down
+    #Yaw Tipping nose left and right
+    # X is forward, Y is left/East and Z is up and down in CS:GO!
+
+    all_player_eyeAngles_to_direction_vec3_list = []
+
+    for player_i in range(10):
+        pitchDeg = df.at[index_label, EYEANGLE_PITCH_COLUMN_NAMES[player_i]]
+        yawDeg = df.at[index_label, EYEANGLE_YAW_COLUMN_NAMES[player_i]]
+
+        pitch = math.radians(pitchDeg)
+        yaw = math.radians(yawDeg)
+
+        # COPIED FROM https://stackoverflow.com/a/10569719 BY Neil Forrester
+        xzLen = math.cos(pitch)
+        x = xzLen * math.cos(yaw)
+        y = xzLen * math.sin(-yaw)
+        z = math.sin(pitch)  #Up and down
+
+        all_player_eyeAngles_to_direction_vec3_list.append(vec3(x, y, z))
+
+    return all_player_eyeAngles_to_direction_vec3_list
+
+
+def extract(cond, x):
+    if isinstance(x, numbers.Number):
+        return x
+    else:
+        return np.extract(cond, x)
+
+
+FARAWAY = 1.0e39
+VELOCITYX_COLUMN_NAMES = data_loader.get_feature_column_names('VelocityX')
+VELOCITYY_COLUMN_NAMES = data_loader.get_feature_column_names('VelocityY')
+VELOCITYZ_COLUMN_NAMES = data_loader.get_feature_column_names('VelocityZ')
+
+EYEANGLE_PITCH_COLUMN_NAMES = data_loader.get_feature_column_names(
+    'EyeAnglePitch')
+EYEANGLE_YAW_COLUMN_NAMES = data_loader.get_feature_column_names('EyeAngleYaw')
+
+AIM_ON_ENEMY_COLUMN_NAMES = data_loader.get_feature_column_names(
+    data_loader.get_feature_names_from_feature_subset("one_hot_aim_on_enemy"))
+
 if __name__ == "__main__":
-    '''add_one_hot_encoding_weapons(
-        data_loader.load_csv_as_df(
-            Path('parsed_files/sprout-vs-ex-epsilon-m3-overpass.csv')))'''
+    sample = data_loader.load_sample_csv_as_df()
+
+    l = all_player_eyeAngles_to_direction_vec3(sample, sample.index[0])
     pass

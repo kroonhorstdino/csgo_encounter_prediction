@@ -5,9 +5,10 @@ import sys
 import json
 
 from pathlib import Path
-from typing import Tuple, List
+from typing import Tuple, List, Union
 
 import glob
+import random
 '''
 import torch
 import torch.nn as nn
@@ -203,11 +204,22 @@ def get_die_within_seconds_column_names(num_players=10,
     return actual_column_names
 
 
-def get_feature_column_names(feature_name: str, num_players=10):
+def get_feature_column_names(feature_name: Union[str, list], num_players=10):
     actual_column_names = []
 
-    for player_i in range(num_players):
-        actual_column_names.append(f'f_{player_i}_{feature_name}')
+    # If a list of features go through each and store it as a list in a list
+    if type(feature_name) == list:
+        for feature_n in feature_name:
+            one_feature_column_names = []
+
+            for player_i in range(num_players):
+                one_feature_column_names.append(f'f_{player_i}_{feature_n}')
+
+            actual_column_names.append(one_feature_column_names)
+
+    else:
+        for player_i in range(num_players):
+            actual_column_names.append(f'f_{player_i}_{feature_name}')
 
     return actual_column_names
 
@@ -239,9 +251,9 @@ def load_csv_as_df(filePath: Path) -> pd.DataFrame:
 
     df.set_index('Tick', inplace=True)
     # NOTE: Don't drop if still relevant
-    df.drop(columns=['Round'], inplace=True)
-    df = df.filter(like='CurrentWeapon').fillna(42.0, inplace=True)
-    df = df.fillna(0, inplace=True)
+    #df.drop(columns=['Round'], inplace=True)
+    df.fillna(value=WEAPON_COLUMN_FILLNA_VALUES, inplace=True)
+    df.fillna(0, inplace=True)
 
     return df
 
@@ -262,9 +274,11 @@ def load_h5_as_df(filePath: Path,
     if column_names is not None:
         df = df[column_names]
 
-    if ('Tick' in df.columns and drop_ticks):
+    if (drop_ticks):
+        print(df.index.name)
         # Reset index and drop it
         df.reset_index(drop=True, inplace=True)
+        print("Hi")
 
     df.fillna(0.0, inplace=True)
 
@@ -284,18 +298,44 @@ def load_json(config_path: Path):
     return config
 
 
+def load_sample_csv_as_df():
+    '''
+        Get a sample csv file as dataframe from parsed data
+    '''
+    return load_csv_as_df(
+        random.choice(
+            get_files_in_directory(
+                DATASET_CONFIG["paths"]["parsed_files_path"], '.csv')))
+
+
+def load_sample_h5_as_df(drop_ticks: bool):
+    '''
+        Get a sample h5 file as dataframe from training data
+    '''
+    return load_h5_as_df(
+        random.choice(
+            get_files_in_directory(
+                DATASET_CONFIG["paths"]["training_files_path"], '.csv')),
+        drop_ticks)
+
+
+def get_team_iterables():
+    teams = np.split(np.arange(10), 2)
+
+    return teams[0], teams[1]
+
+
+DATASET_CONFIG = load_json('config/dataset_config.json')
+
 FEATURES_INFO: dict = load_json('config/features_info.json')
 ITEM_DEFINITION_INDEX_MAP: dict = load_json(
     'config/item_definition_index_map.json')
 
+WEAPON_COLUMN_FILLNA_VALUES = dict(
+    map(lambda name: (name, 42.0), get_feature_column_names('CurrentWeapon')))
+
 # Testing
 if __name__ == "__main__":
-    '''
-    features, labels= get_minibatch_balanced_player(pd.read_csv(
-        Path.cwd() / 'parsed_files' / 'positions.csv', sep=',', na_values='-'), 0)
-
-    print(features)
-    print(labels)
-    '''
-    #print(get_feature_names_from_feature_subset("player_movement"))
-    print(get_column_names_from_features_set("parse_correct_all"))
+    csv_file = get_files_in_directory('../../csgo_dataset/parsed_files',
+                                      '.csv')[0]
+    df = load_csv_as_df(csv_file)
