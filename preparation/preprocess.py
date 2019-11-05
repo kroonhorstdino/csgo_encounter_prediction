@@ -236,12 +236,20 @@ def add_one_hot_encoding_angles(df: pd.DataFrame, discrete=True):
                 range(10), player_positions_vec3,
                 player_looking_directions_vec3):
 
+            team_list = []
+            enemy_list = []
+            if player_i > 4:
+                enemy_list, team_list = data_loader.get_team_iterables()
+            else:
+                team_list, enemy_list = data_loader.get_team_iterables()[0]
+
             #Get all intersections of ray shot from player with other spheres
+            #Delete all spheres from the same team
             get_player_aim_on_enemy(player_position, player_looking_direction,
-                                    np.delete(player_spheres, player_i))
+                                    np.delete(player_spheres, team_list))
 
             #iterate through enemies
-            for enemy_i in range(5):
+            for enemy_i in range(enemy_list):
 
                 #Indexing for list is reversed due to generating of multiple feature column name lists
                 df.at[index_label, AIM_ON_ENEMY_COLUMN_NAMES[enemy_i]
