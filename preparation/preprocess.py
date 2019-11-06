@@ -74,7 +74,7 @@ class Sphere:
         self.r = radius
         self.player_i = player_i
 
-    def intersects(self, O, D):
+    def intersects(self, O, D) -> bool:
         b = 2 * D.dot(O - self.c)
         c = abs(self.c) + abs(O) - 2 * self.c.dot(O) - (self.r * self.r)
         disc = (b**2) - (4 * c)
@@ -167,6 +167,7 @@ def undersample_pure_not_die_ticks(df: pd.DataFrame,
     '''
         Remove a certain amount of ticks, which will not experience a death in the next x seconds
     '''
+
     return df
 
 
@@ -213,72 +214,84 @@ def add_one_hot_encoding_weapons(df: pd.DataFrame):
     return df
 
 
-#TODO: Add one hot angles
+#TODO: Add one hot angles wip
+#FIXME: Test this!
 def add_one_hot_encoding_angles(df: pd.DataFrame, discrete=True):
     '''
-        Adds one hot encoding for angle to player (is a raycast within radius of enemy player)
+        Adds one hot encoding that indicates if the player is looking near *ENEMY* players (is a raycast within radius of enemy player)
         Removes 'EyeAnglesPitch' and 'EyeAnglesYaw' columns for each player
     '''
 
     #STOLEN FROM https://github.com/jamesbowman/raytrace/blob/master/rt3.py
 
+    teams = data_loader.get_team_iterables()
+
+    aim_on_enemy_df = pd.DataFrame(columns=np.array(AIM_ON_ENEMY_COLUMN_NAMES).flatten(),
+                                     index=df.index,
+                                     dtype=np.float32)
+
     #Iterate through rows
     for index_label in df.index:
+
+        #Position and direction vectors as vec3 arrays
         player_positions_vec3 = all_player_position_to_vec3(df, index_label)
         player_looking_directions_vec3 = all_player_eyeAngles_to_direction_vec3(
             df, index_label)
 
+        # Spheres of all players
         player_spheres = np.array(
-            generate_player_spheres(player_positions_vec3, 5))
+            generate_player_spheres(player_positions_vec3, 5))        
 
         #Iterate through all players and their positions and angles
         for player_i, player_position, player_looking_direction in zip(
                 range(10), player_positions_vec3,
                 player_looking_directions_vec3):
 
-            team_list = []
-            enemy_list = []
-            if player_i > 4:
-                enemy_list, team_list = data_loader.get_team_iterables()
-            else:
-                team_list, enemy_list = data_loader.get_team_iterables()[0]
+            ally_index = data_loader.get_ally_team_iterable_index(player_i)
+            enemy_index = data_loader.get_enemy_team_iterable_index(player_i)
 
             #Get all intersections of ray shot from player with other spheres
-            #Delete all spheres from the same team
-            get_player_aim_on_enemy(player_position, player_looking_direction,
-                                    np.delete(player_spheres, team_list))
+            #Don't pass on spheres of allies
+            one_hot_aim_on_enemy_list = get_player_raycast_hits(player_position, player_looking_direction,
+                                    np.delete(player_spheres, teams[ally_index]))
 
-            #iterate through enemies
-            for enemy_i in range(enemy_list):
+            #iterate through enemies and set values
+            for enemy_i in teams[enemy_index]:
 
                 #Indexing for list is reversed due to generating of multiple feature column name lists
-                df.at[index_label, AIM_ON_ENEMY_COLUMN_NAMES[enemy_i]
-                      [player_i]]
+                aim_on_enemy_df.at[index_label, AIM_ON_ENEMY_COLUMN_NAMES[enemy_i][player_i]] = True if one_hot_aim_on_enemy_list[enemy_i] == 1 else 0
             #TODO: Finish calculation of angles
 
     df.drop(columns=EYEANGLES_COLUMN_NAMES, inplace=True)
+    aim_on_enemy_df.fillna(0.0,inplace=True)
+    df = pd.concat([df, aim_on_enemy_df], sort=True)
     return df
 
 
-def get_player_aim_on_enemy(player_position: vec3, player_direction: vec3,
-                            target_spheres: List[Sphere]):
-    # O is the ray origin, D is the normalized ray direction
-    # player_spheres are the custom sphere objects of players
-    # Returns one hot encoded array for 1 aim on enemy or 0 no aim on enemy
-
+def get_player_raycast_hits(player_position: vec3, player_direction: vec3,
+                            target_spheres: List[Sphere]) -> List[bool]:
+    '''
+        player_position is the ray origin, player_direction is the normalized ray direction
+        player_spheres are the custom sphere objects of players
+        Returns one hot encoded array for 1 aim on enemy or 0 no aim on enemy within radius around enemy players
+    '''
+    
+    # Sort by players (just to be sure)
     target_spheres.sort(lambda sph: sph.player_i)
 
+    # Check for hits on each enemy player sphere
     player_raycast_hits = [
         target_sphere.intersects(player_position, player_direction)
         for target_sphere in target_spheres
     ]
 
+    # Array consisting of True and False values based on if the enemy player is being aimed at
     return player_raycast_hits
 
 
-def generate_player_spheres(player_positions: List[vec3], radius: float):
-    player_spheres = []
-    #TODO: Do player spheres
+def generate_player_spheres(player_positions: List[vec3], radius: float) -> List[Sphere]:
+
+    player_spheres = [Sphere(player_positions[player_i], radius, player_i) for player_i in range(10)]
 
     return player_spheres
 
@@ -302,8 +315,9 @@ def all_player_eyeAngles_to_direction_vec3(df: pd.DataFrame,
                                            index_label) -> List[vec3]:
     '''
         Calculates and returns all looking direction vectors of players in a labelled tick
-        NOTE: Based on CS:GO/source coordinate system: https://developer.valvesoftware.com/wiki/Coordinates
-        Vectors are calculated based on pitch and yaw of player
+        \nVectors are calculated based on pitch and yaw of player
+        \nVectors are normalized!
+        \nNOTE: Based on CS:GO/source coordinate system: https://developer.valvesoftware.com/wiki/Coordinates
     '''
 
     #Pitch Tipping nose up and down
@@ -325,7 +339,7 @@ def all_player_eyeAngles_to_direction_vec3(df: pd.DataFrame,
         y = xzLen * math.sin(-yaw)
         z = math.sin(pitch)  #Up and down
 
-        all_player_eyeAngles_to_direction_vec3_list.append(vec3(x, y, z))
+        all_player_eyeAngles_to_direction_vec3_list.append(vec3(x, y, z).norm())
 
     return all_player_eyeAngles_to_direction_vec3_list
 
@@ -350,7 +364,9 @@ AIM_ON_ENEMY_COLUMN_NAMES = data_loader.get_feature_column_names(
     data_loader.get_feature_names_from_feature_subset("one_hot_aim_on_enemy"))
 
 if __name__ == "__main__":
-    sample = data_loader.load_sample_csv_as_df()
+    #sample = data_loader.load_sample_csv_as_df()
 
-    l = all_player_eyeAngles_to_direction_vec3(sample, sample.index[0])
-    pass
+    #l = all_player_eyeAngles_to_direction_vec3(sample, sample.index[0])
+
+    #NOTE: Seems to work, raycasting    
+    print(Sphere(vec3(500,0,0),1,0).intersects(vec3(0,0,0),vec3(1,0,0)))
