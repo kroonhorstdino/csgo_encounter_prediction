@@ -134,7 +134,7 @@ def train_csgo(dataset_config_path: Path,
 
     print("Start training process...")
 
-    #TODO:
+    #TODO: Do something
     log_every_num_batches = 250 - (50 * min((4, args.verbose)))
 
     TRAIN_CONFIG = data_loader.load_json(train_config_path)
@@ -562,10 +562,14 @@ def train_csgo(dataset_config_path: Path,
                     np.array(all_train_per_sec_predictions_std))
         '''
 
-        model_name = data_loader.MODEL_NAME_TEMPLATE.format(run_name=run_name,epoch_i=epoch_i,feature_set=training_set.feature_set)
+        model_name = data_loader.MODEL_NAME_TEMPLATE.format(
+            run_name=run_name,
+            epoch_i=epoch_i,
+            feature_set=training_set.feature_set)
 
-        if (epoch_i % TRAIN_CONFIG["training"]["checkpoint_epoch"]) == 0 and epoch_i > 0:
-            torch.save(model.state_dict(),f'models/{model_name}.model')
+        if (epoch_i % TRAIN_CONFIG["training"]["checkpoint_epoch"]
+            ) == 0 and epoch_i > 0:
+            torch.save(model.state_dict(), f'models/{model_name}.model')
 
         #CLI
         train_prog_bar.update()

@@ -139,6 +139,7 @@ def preprocess_data(parsed_csv_files_list: List[Path],
         df = preprocess.undersample_pure_not_die_ticks(
             df, removal_frac=0.1)  #NOTE: Doesnt work yet
         df = preprocess.add_one_hot_encoding_weapons(df)
+        df = preprocess.add_one_hot_encoding_angles(df)
 
         target_path = str(processed_files_path / f'{parsed_csv_file.stem}.h5')
 

@@ -9,12 +9,6 @@ const featuresInfoList = require("../config/features_info.json");
 //const itemDefinitionIndexMapConfig = require("../config/item_definition_index_map.json")
 
 /**
- * TODOs
- * TODO: Parse angles of player
- * DONE: One hot encoce weapons (itemDefinitionIndexMap in features_info.json)
- */
-
-/**
  * Data of all weapons, needed for one hot encoding
  * Taken from demofile source code and removed unneeded entries (knifes, etc.)
  */
@@ -33,6 +27,13 @@ class DemoFileParser {
 
         //How many ticks have been seen as of now?
         this.tickCounter = -1;
+
+        this.deathWriterObject = {}
+        this.deathWriterObject.header = featuresInfoList["demo_features"];
+        this.deathWriterObject.path = path.join(
+            targetDirectory,
+            path.basename(demoFilePath, ".dem") + "_deaths.csv"
+        );
 
         // Object that writes to CSV file
         this.featureWriterObject = this.createFeatures();
@@ -58,6 +59,7 @@ class DemoFileParser {
         //Delete file before wrtiting a new one
         try {
             fs.unlinkSync(this.featureWriterObject.path);
+            fs.unlinkSync(this.deathWriterObject.path);
         } catch (e) {
         } finally {
             try {
@@ -95,6 +97,33 @@ class DemoFileParser {
                     players: team.members
                 });
             }
+        });
+
+        this.demoFile.gameEvents.on("player_death", e => {
+            //TODO: Parse deaths
+            const teams = [].concat(this.demoFile.teams[2], this.demoFile.teams[3]);
+
+            const victim = this.demoFile.entities.getByUserId(e.userid);
+            const victimIndex = teams.findIndex((player => player.userid == victim))
+            const victimName = victim ? victim.name : "unnamed";
+
+            // Attacker may have disconnected so be aware.
+            // e.g. attacker could have thrown a grenade, disconnected, then that grenade
+            // killed another player.
+            const attacker = this.demoFile.entities.getByUserId(e.attacker);
+            const attackerIndex = teams.findIndex((player => player.userid == attacker))
+            const attackerName = attacker ? attacker.name : "unnamed";
+
+            //const headshotText = e.headshot ? " HS" : "";
+
+            this.deathDataBuffer.push({
+                "Round": this.demoFile.roundsPlayed,
+                "Tick": this.demoFile.currentTick,
+                "AttackerIndex": attackerIndex,
+                "AttackerName": attackerName,
+                "VictimIndex": victimIndex,
+                "VictimName": victimName,
+            })
         });
 
         //Get player info at each relevant tick
@@ -142,6 +171,7 @@ class DemoFileParser {
          * Final writer for parsing this demo
          */
         this.writerToPlayerInfo = this.createCsvWriter(this.featureWriterObject);
+        this.writerToDeathInfo = this.createCsvWriter(this.deathWriterObject);
 
         let buffer = null;
 
@@ -211,7 +241,7 @@ class DemoFileParser {
          * WRITE DATA TO CSV FILE
          */
         this.writerToPlayerInfo.writeRecords(this.playerInfoBuffer);
-        //this.writerToDeaths.writeRecords(this.deathDataBuffer);
+        this.writerToDeathInfo.writeRecords(this.deathDataBuffer);
         if (this.verbosity > 2) console.log("===========> Data written to CSV");
 
         this.playerInfoBuffer.length = 0;
@@ -471,9 +501,9 @@ class DemoFileParser {
             for (const weaponIndex in itemDefinitionIndexMap) {
                 //Don't add other knifes to the feature list, all knifes will be mapped to "normal knife" (index 42)
                 if (this.isDifferentKnifeWeaponIndex(weaponIndex)) continue;
-    
+     
                 const weaponClassName = `${itemDefinitionIndexMap[weaponIndex].className}_${weaponIndex}`;
-    
+     
                 playerFeatures.push({
                     id: weaponClassName,
                     //Uppercase for first letter (I don't know why exactly)
@@ -578,8 +608,8 @@ let verbosity = 4;
 
 //Its weird, but it works
 if (process.argv[2] == "true") {
-    demoFilePath = "../../csgo_dataset/demo_files/sprout-vs-ex-epsilon-m3-overpass.dem";
-    parsedFilePath = "../../csgo_dataset/parsed_files/";
+    demoFilePath = "/home/hueter/csgo_dataset/demo_files/renegades-vs-fnatic-m3-inferno.dem";
+    parsedFilePath = "/home/hueter/csgo_dataset/";
 } else {
     //TODO different ways to set paths
     demoFilePath = process.argv[2];
