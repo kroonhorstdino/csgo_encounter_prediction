@@ -49,6 +49,7 @@ class CounterStrikeDataset(Dataset):
 
         #TODO: Choose columns based on feature set in training config
         self.feature_set = train_config["training"]["feature_set"]
+        self.label_set = train_config["training"]["label_set"]
         self.features_column_names = data_loader.get_column_names_from_features_set(
             self.feature_set)
         self.labels_column_names = data_loader.get_die_within_seconds_column_names(
@@ -131,13 +132,13 @@ def train_csgo(dataset_config_path: Path,
                run_name: str = None,
                loss_calculation_mode='target'):
 
-    print("Start training...")
+    print("Start training process...")
 
     #TODO:
     log_every_num_batches = 250 - (50 * min((4, args.verbose)))
 
-    train_config = data_loader.load_json(train_config_path)
-    dataset_config = data_loader.load_json(dataset_config_path)
+    TRAIN_CONFIG = data_loader.load_json(train_config_path)
+    DATASET_CONFIG = data_loader.load_json(dataset_config_path)
 
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda:0" if use_cuda else "cpu")
@@ -146,20 +147,20 @@ def train_csgo(dataset_config_path: Path,
     OptimizerType = torch.optim.Adam
 
     dataset_files_partition = prepare_dataset.get_dataset_partitions(
-        dataset_config["paths"]["training_files_path"], [0.8, 0.2, 0])
+        DATASET_CONFIG["paths"]["training_files_path"], [0.8, 0.2, 0])
 
     # the dataset returns a batch when called (because we get the whole batch from one file), the batch size of the data loader thus is set to 1 (default)
     # epoch size is how many elements the iterator of the generator will provide, NOTE should not be too small, because it have a significant overhead p=0.05
-    training_set = CounterStrikeDataset(dataset_config,
-                                        train_config,
+    training_set = CounterStrikeDataset(DATASET_CONFIG,
+                                        TRAIN_CONFIG,
                                         dataset_files_partition,
                                         isValidationSet=False)
     training_generator = torch.utils.data.DataLoader(training_set,
                                                      batch_size=1,
                                                      shuffle=False)
 
-    validation_set = CounterStrikeDataset(dataset_config,
-                                          train_config,
+    validation_set = CounterStrikeDataset(DATASET_CONFIG,
+                                          TRAIN_CONFIG,
                                           dataset_files_partition,
                                           isValidationSet=True)
     validation_generator = torch.utils.data.DataLoader(validation_set,
@@ -170,8 +171,8 @@ def train_csgo(dataset_config_path: Path,
 
     model = models.SharedWeightsCSGO(
         num_all_player_features=training_set.num_all_player_features,
-        shared_layer_sizes=train_config["topography"]["shared_layers"],
-        dense_layer_sizes=train_config["topography"]["dense_layers"])
+        shared_layer_sizes=TRAIN_CONFIG["topography"]["shared_layers"],
+        dense_layer_sizes=TRAIN_CONFIG["topography"]["dense_layers"])
 
     model.to(device)
 
@@ -180,8 +181,8 @@ def train_csgo(dataset_config_path: Path,
     writer = SummaryWriter(str(Path(PATH_RESULTS / run_name)))
     writer.add_hparams(
         {
-            "feature_set": train_config["training"]["feature_set"],
-            "lr": train_config["training"]["lr"],
+            "feature_set": TRAIN_CONFIG["training"]["feature_set"],
+            "lr": TRAIN_CONFIG["training"]["lr"],
             "batch_size": training_set.batch_row_size
         }, {})
 
@@ -197,7 +198,7 @@ def train_csgo(dataset_config_path: Path,
         binary_classification_loss = torch.nn.BCELoss()'''
 
     optimizer = OptimizerType(model.parameters(),
-                              lr=train_config["training"]["lr"])
+                              lr=TRAIN_CONFIG["training"]["lr"])
 
     all_train_losses = []
     all_train_accuracies = []
@@ -561,9 +562,10 @@ def train_csgo(dataset_config_path: Path,
                     np.array(all_train_per_sec_predictions_std))
         '''
 
-        if (epoch_i % 100) == 99:
-            torch.save(model.state_dict(),
-                       f"models/modelstr_{run_name}_EPOCH_{epoch_i}.model")
+        model_name = data_loader.MODEL_NAME_TEMPLATE.format(run_name=run_name,epoch_i=epoch_i,feature_set=training_set.feature_set)
+
+        if (epoch_i % TRAIN_CONFIG["training"]["checkpoint_epoch"]) == 0 and epoch_i > 0:
+            torch.save(model.state_dict(),f'models/{model_name}.model')
 
         #CLI
         train_prog_bar.update()
@@ -586,14 +588,14 @@ if __name__ == "__main__":
         "-name",
         default=f'run_{date.today().strftime("%S-%M-%H-%d-%b-%Y")}',
         help="Name of training run")
-    parser.add_argument(
+    '''parser.add_argument(
         "-loss_mode",
         choices=['all', 'target', 'weighted'],
         default='target',
         help=
         "WIP! ---- How calculate loss? For all outputs equally, only for the target player of the batch, or weighted for deaths vs non deaths labels."
-    )
-    parser.add_argument("-verbose", default=2, help="Config for training")
+    )'''
+    parser.add_argument("-verbose", default=2)
 
     args = parser.parse_args()
 

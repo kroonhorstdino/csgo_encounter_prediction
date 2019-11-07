@@ -503,7 +503,19 @@
 			}
 		]
 	},
-	"base_labels": [
-		{}
-	]
+	"player_labels": {
+		"discrete_die_within_5_seconds": [
+			{
+			"id": "die_within_5_seconds",
+			"title": "die_within_5_seconds"
+			}
+		],
+		"time_to_death_within_5_seconds": [
+			{
+				"id": "time_to_death_within_5_seconds",
+				"title": "time_to_death_within_5_seconds"
+			}
+		]
+
+	}
 }
