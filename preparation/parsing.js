@@ -28,8 +28,26 @@ class DemoFileParser {
         //How many ticks have been seen as of now?
         this.tickCounter = -1;
 
-        this.deathWriterObject = {}
-        this.deathWriterObject.header = featuresInfoList["demo_features"];
+        this.deathWriterObject = {};
+        this.deathWriterObject.header = [...featuresInfoList["demo_features"]]
+        this.deathWriterObject.header.push(
+            {
+                "id": "attackerIndex",
+                "title": "AttackerIndex"
+            },
+            {
+                "id": "attackerName",
+                "title": "AttackerName"
+            },
+            {
+                "id": "victimIndex",
+                "title": "VictimIndex"
+            },
+            {
+                "id": "victimName",
+                "title": "VictimName"
+            }
+        )
         this.deathWriterObject.path = path.join(
             targetDirectory,
             path.basename(demoFilePath, ".dem") + "_deaths.csv"
@@ -89,41 +107,31 @@ class DemoFileParser {
             this.SampleRateModulo = this.getTickSampleRateModulo();
 
             this.ignoreTicks = true; //Ingore ticks until first round starts
-
-            //Put players into an objects that holds both teams
-            for (const team of this.demoFile.teams) {
-                this.playersInTeams.push({
-                    index: team.index,
-                    players: team.members
-                });
-            }
         });
 
         this.demoFile.gameEvents.on("player_death", e => {
-            //TODO: Parse deaths
-            const teams = [].concat(this.demoFile.teams[2], this.demoFile.teams[3]);
+            this.set_teams_in_order(false);
 
             const victim = this.demoFile.entities.getByUserId(e.userid);
-            const victimIndex = teams.findIndex((player => player.userid == victim))
+            const victimIndex = this.get_all_players_in_order().findIndex((player => player == victim));
             const victimName = victim ? victim.name : "unnamed";
 
             // Attacker may have disconnected so be aware.
             // e.g. attacker could have thrown a grenade, disconnected, then that grenade
             // killed another player.
             const attacker = this.demoFile.entities.getByUserId(e.attacker);
-            const attackerIndex = teams.findIndex((player => player.userid == attacker))
+            const attackerIndex = this.get_all_players_in_order().findIndex((player => player == attacker));
             const attackerName = attacker ? attacker.name : "unnamed";
 
             //const headshotText = e.headshot ? " HS" : "";
 
             this.deathDataBuffer.push({
-                "Round": this.demoFile.roundsPlayed,
-                "Tick": this.demoFile.currentTick,
-                "AttackerIndex": attackerIndex,
-                "AttackerName": attackerName,
-                "VictimIndex": victimIndex,
-                "VictimName": victimName,
-            })
+                "tick": this.demoFile.currentTick,
+                "attackerIndex": attackerIndex,
+                "attackerName": attackerName,
+                "victimIndex": victimIndex,
+                "victimName": victimName,
+            });
         });
 
         //Get player info at each relevant tick
@@ -247,6 +255,44 @@ class DemoFileParser {
         this.playerInfoBuffer.length = 0;
         this.deathDataBuffer.length = 0;
     }
+    
+    /**
+     * Returns an array of teams sorted by team handle
+     * Teams are always in same order regardless of which side they're on (CT or T)!
+     *
+     * @param {*} reset
+     * @returns
+     * @memberof DemoFileParser
+     */
+    set_teams_in_order(reset) {
+
+        //Terrorist
+        let t = this.demoFile.teams[2];
+        //Counter-Terrorist
+        let ct = this.demoFile.teams[3];
+
+        //If anything is wrong with the teams
+        if (t == undefined || ct == undefined || t.members < 5 || ct.members < 5) return true;
+
+        if (this.teams == null || reset) {            
+            // Sort teams by handle to ensure a constant order of teams and players
+            let allTeams = [].concat(t, ct).sort((a, b) => a.handle - b.handle)
+            this.teams = allTeams;
+        }
+        return false;
+    }
+
+    /**
+     * Returns an array of all players in order of teams first and then players ordered by index inside the teams
+     *
+     * @returns
+     * @memberof DemoFileParser
+     */
+    get_all_players_in_order() {
+        return [].concat(this.teams[0].members.sort((a, b) => a.index - b.index), this.teams[1].members.sort((a, b) => a.index - b.index));
+    }
+
+
 
     //Should a tick message be printed now?
     is_show_print_message() {
@@ -293,19 +339,12 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     getAllPlayerInfoForTick() {
-        //Terrorist
-        let t = this.demoFile.teams[2];
-        //Counter-Terrorist
-        let ct = this.demoFile.teams[3];
-
-        //If anything is wrong with the teams
-        if (t == undefined || ct == undefined) return;
-
-        const allPlayers = [].concat(t.members, ct.members);
+        const wrongA = this.set_teams_in_order(true);
+        const allPlayers = this.get_all_players_in_order();
 
         const currentTick = this.demoFile.currentTick;
 
-        if (allPlayers.length != 10 || allPlayers.includes(null)) {
+        if (allPlayers.length != 10 || allPlayers.includes(null) || wrongA) {
             if (this.is_show_print_message())
                 console.log(
                     "|| Tick: " +
@@ -350,8 +389,8 @@ class DemoFileParser {
             tickInfo[featureNameStart + "_velocityY"] = player.velocity.y;
             tickInfo[featureNameStart + "_velocityZ"] = player.velocity.z;
 
-            tickInfo[featureNameStart + "_eyeAnglePitch"] = player.eyeAngles.pitch
-            tickInfo[featureNameStart + "_eyeAngleYaw"] = player.eyeAngles.yaw
+            tickInfo[featureNameStart + "_eyeAnglePitch"] = player.eyeAngles.pitch;
+            tickInfo[featureNameStart + "_eyeAngleYaw"] = player.eyeAngles.yaw;
 
             //Health, Armor, etc.
             tickInfo[featureNameStart + "_health"] = player.health;
@@ -511,7 +550,7 @@ class DemoFileParser {
                 });
             }*/
 
-        let allFeatures = featuresInfoList["demo_features"];
+        let allFeatures = [... featuresInfoList["demo_features"]]
 
         //Generate features per player and push into allFeatures array
         for (const feature of playerFeatures) {
@@ -606,10 +645,12 @@ class DemoFileParser {
 let demoFilePath, parsedFilePath;
 let verbosity = 4;
 
+let debugDemoFilePath = '../csgo_dataset/demo_files/vitality-vs-liquid-m2-dust2.dem'; // "../../csgo_dataset/demo_files/renegades-vs-fnatic-m3-inferno.dem"
+
 //Its weird, but it works
 if (process.argv[2] == "true") {
-    demoFilePath = "/home/hueter/csgo_dataset/demo_files/renegades-vs-fnatic-m3-inferno.dem";
-    parsedFilePath = "/home/hueter/csgo_dataset/";
+    demoFilePath = debugDemoFilePath;
+    parsedFilePath = "../csgo_dataset/";
 } else {
     //TODO different ways to set paths
     demoFilePath = process.argv[2];
