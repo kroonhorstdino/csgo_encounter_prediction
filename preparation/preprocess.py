@@ -160,6 +160,27 @@ def add_die_within_sec_labels(df: pd.DataFrame,
 
     return df
 
+def add_death_in_seconds_label(df: pd.DataFrame):
+    #TODO: Continoous
+    time_points = data.values[:,0]
+    for i in range(10):
+
+        death_times = times_of_death_list[i]
+        time_to_next_death = np.full(len(time_points),-1,dtype=np.float32) # init to invalid
+        next_death_time_label = "stat_" + str(i) + "_time_until_next_death"
+
+        for time_i,time in enumerate(time_points):
+            for death_time in death_times:
+                if death_time - time > 0:
+                    if time_to_next_death[time_i] < 0: # still invalid
+                        time_to_next_death[time_i] = death_time - time
+                    else:
+                        time_to_next_death[time_i] = min(time_to_next_death[time_i], death_time - time)
+                    
+        data[next_death_time_label] = time_to_next_death
+
+    return data
+
 
 def undersample_pure_not_die_ticks(df: pd.DataFrame,
                                    death_time_window: int = 5,
@@ -357,13 +378,12 @@ def all_player_eyeAngles_to_direction_vec3(df: pd.DataFrame,
         yawDeg = df.at[index_label, EYEANGLE_YAW_COLUMN_NAMES[player_i]]
 
         pitch = math.radians(pitchDeg)
-        yaw = math.radians(yawDeg)
+        yaw = math.radians(yawDeg) #Y is positive on left side
 
         # COPIED FROM https://stackoverflow.com/a/10569719 BY Neil Forrester
-        xzLen = math.cos(pitch)
-        x = xzLen * math.cos(yaw)
-        y = xzLen * math.sin(-yaw)
-        z = math.sin(pitch)  #Up and down
+        x = math.cos(yaw)*math.cos(pitch)
+        y = math.sin(yaw)*math.cos(pitch)
+        z = math.sin(pitch)
 
         all_player_eyeAngles_to_direction_vec3_list.append(
             vec3(x, y, z).norm())
