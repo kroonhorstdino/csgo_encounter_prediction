@@ -138,7 +138,11 @@ def preprocess_data(parsed_csv_files_list: List[Path],
         df = preprocess.add_die_within_sec_labels(df)
         df = preprocess.undersample_pure_not_die_ticks(
             df, removal_frac=0.1)  #NOTE: Doesnt work yet
+
+        prep_prog_bar.write("Adding one hot encoding for weapons")
         df = preprocess.add_one_hot_encoding_weapons(df)
+
+        prep_prog_bar.write("Adding one hot encoding for player aim on enemy")
         df = preprocess.add_one_hot_encoding_angles(df)
 
         target_path = str(processed_files_path / f'{parsed_csv_file.stem}.h5')
@@ -147,7 +151,7 @@ def preprocess_data(parsed_csv_files_list: List[Path],
 
         try:
             #Save to hdf and if specified, remove old csv file
-            df.to_hdf(target_path, key='df', mode='w')
+            df.to_hdf(target_path, key='player_info', mode='w')
         except:
             print("Couldn't save to dataframe... ")
             raise

@@ -244,8 +244,8 @@ def get_files_in_directory(files_path: Path,
 
 def load_csv_as_df(filePath: Path) -> pd.DataFrame:
     '''
-    Loads parsed .csv file of match as df with all nessecary index modifications and NaN handling
-    Removes Round column and sets Tick column as index for dataframe
+        Loads parsed .csv file of match as df with all nessecary index modifications and NaN handling
+        Removes Round column and sets Tick column as index for dataframe
     '''
 
     df = pd.read_csv(filePath, sep=',', na_values='-').astype(np.float32)
@@ -261,16 +261,16 @@ def load_csv_as_df(filePath: Path) -> pd.DataFrame:
 
 def load_h5_as_df(filePath: Path,
                   drop_ticks: bool,
+                  key: str='player_info',
                   column_names: List[str] = None) -> pd.DataFrame:
     '''
-    Loads .h5 file as dataframe
-
-    If true drops 'Tick' as index and removes that column it from df
+        Loads a dataframe from .h5 file with given key \n
+        'drop_ticks' drops 'Tick' as index and removes that column from df reverting back to integer based index
     '''
 
     # DEBUG: print(filePath)
 
-    df = pd.read_hdf(filePath, key='df').astype(np.float32)
+    df = pd.read_hdf(filePath, key=key).astype(np.float32)
 
     if column_names is not None:
         df = df[column_names]
@@ -279,7 +279,6 @@ def load_h5_as_df(filePath: Path,
         print(df.index.name)
         # Reset index and drop it
         df.reset_index(drop=True, inplace=True)
-        print("Hi")
 
     df.fillna(0.0, inplace=True)
 
@@ -309,7 +308,7 @@ def load_sample_csv_as_df():
                 DATASET_CONFIG["paths"]["parsed_files_path"], '.csv')))
 
 
-def load_sample_h5_as_df(drop_ticks: bool):
+def load_sample_h5_as_df(drop_ticks: bool, key: str=None):
     '''
         Get a sample h5 file as dataframe from training data
     '''
@@ -317,7 +316,8 @@ def load_sample_h5_as_df(drop_ticks: bool):
         random.choice(
             get_files_in_directory(
                 DATASET_CONFIG["paths"]["training_files_path"], '.csv')),
-        drop_ticks)
+        drop_ticks,
+        key=key)
 
 
 def load_model(model_run_name, epoch_i):

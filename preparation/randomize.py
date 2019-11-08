@@ -15,7 +15,7 @@ import data_loader
 
 
 def randomize_processed_file(file_path: Path):
-    df = data_loader.load_h5_as_df(file_path, True)
+    df = data_loader.load_h5_as_df(file_path, True, 'player')
 
     return randomize_processed_dataframe(df)
 
@@ -73,7 +73,7 @@ def randomize_processed_files(files_list: List[Path],
             '''
             last_chunk_df.to_hdf(str(randomized_files_path /
                                      normal_chunk_file_name),
-                                 key='df',
+                                 key='player_info',
                                  mode='w')
         else:
             if (leftover_df is not None):
@@ -83,18 +83,18 @@ def randomize_processed_files(files_list: List[Path],
                 # Save new chunk as normal chunk, cutoff at length of normal chunk. Rest is leftover
                 (last_chunk_df.iloc[:min(len(last_chunk_df), chunk_row_size)]
                  ).to_hdf(str(randomized_files_path / normal_chunk_file_name),
-                          key='df',
+                          key='player_info',
                           mode='w')
                 # Save rest as leftover
                 (last_chunk_df.iloc[chunk_row_size:]).to_hdf(str(
                     randomized_files_path / f"leftover.h5.leftover"),
-                                                             key='df',
+                                                             key='player_info',
                                                              mode='w')
             else:
                 # Save last chunk as leftover
                 last_chunk_df.to_hdf(str(randomized_files_path /
                                          f"leftover.h5.leftover"),
-                                     key='df',
+                                     key='player_info',
                                      mode='w')
 
 
