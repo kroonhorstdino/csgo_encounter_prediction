@@ -35,6 +35,15 @@ import prepare_dataset
 
 PATH_RESULTS = Path('results')
 
+'''
+    TODO: Download files in demo databse of lasse
+    TODO: Jupyter test_angle_prep
+    TODO: Get aim on enemy right
+    TODO: Get feature selection right
+    TODO: Train with all layers and big dataset
+    TODO: Hyperparameter search
+    TODO: Test on a match
+'''
 
 class CounterStrikeDataset(Dataset):
     def __init__(self,
