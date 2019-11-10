@@ -305,9 +305,9 @@ if __name__ == '__main__':
                        Path(config["paths"]["parsed_files_path"]))
         elif (args.mode == 'preprocess'):
             print("Only preprocessing...")
-            parsed_csv_files_list = list(filter(lambda name: "death" not in name, data_loader.get_files_in_directory(
-                Path(config["paths"]["parsed_files_path"]), ".csv")))
-            preprocess_data(parsed_csv_files_list,
+            parsed_csv_files_list = filter(lambda name: "death" not in name, data_loader.get_files_in_directory(
+                Path(config["paths"]["parsed_files_path"]), ".csv"))
+            preprocess_data(list(parsed_csv_files_list),
                             Path(config["paths"]["processed_files_path"]))
         elif (args.mode == 'randomize'):
             processed_h5_files_list = data_loader.get_files_in_directory(
