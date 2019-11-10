@@ -133,7 +133,6 @@ def add_die_within_sec_labels(df: pd.DataFrame,
                 index_location = df.index.get_loc(past_tick)
                 # debug_test_sample = df.iloc[int(index_location)]
 
-                #TODO: Test new labelling!
                 #FIXME: Use iat insted of loc!
                 #If player is already dead in past tick
                 if (df[player_isAlive_column_name].loc[past_tick] == 0):
@@ -162,7 +161,7 @@ def add_die_within_sec_labels(df: pd.DataFrame,
 
 def add_death_in_seconds_label(df: pd.DataFrame):
     #TODO: Continoous
-    time_points = data.values[:,0]
+    '''time_points = data.values[:,0]
     for i in range(10):
 
         death_times = times_of_death_list[i]
@@ -179,7 +178,8 @@ def add_death_in_seconds_label(df: pd.DataFrame):
                     
         data[next_death_time_label] = time_to_next_death
 
-    return data
+    return data'''
+    pass
 
 
 def undersample_pure_not_die_ticks(df: pd.DataFrame,
@@ -424,9 +424,4 @@ if __name__ == "__main__":
 
     # NOTE: Seems to work, raycasting
     #print(Sphere(vec3(500,0,0),1,0).intersects(vec3(0,0,0),vec3(1,0,0)))
-
-    # TODO: Test aim on enemy one hot encoding
-    df = data_loader.load_csv_as_df(
-        '../../csgo_dataset/parsed_files/renegades-vs-fnatic-m3-inferno.csv')
-    df = add_one_hot_encoding_angles(df.loc[83330:])
-    print(df['f_0_AimOnEnemy_0'].head(10))
+    pass

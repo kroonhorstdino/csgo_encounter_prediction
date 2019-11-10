@@ -37,7 +37,6 @@ def test_on_match(csv_match_file: Path, model: models.SharedWeightsCSGO):
 
     print("Start training process...")
 
-    #TODO: Do something
     #log_every_num_batches = 250 - (50 * min((4, args.verbose)))
 
     TRAIN_CONFIG = data_loader.load_json(TRAIN_CONFIG_PATH)
