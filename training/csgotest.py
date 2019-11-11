@@ -56,6 +56,8 @@ class CounterStrikeDataset(Dataset):
         else:
             self.dataset_files = dataset_files_partition[1]
 
+        self.map = train_config["training"]["map"]
+
         #TODO: Choose columns based on feature set in training config
         self.feature_set = train_config["training"]["feature_set"]
         self.label_set = train_config["training"]["label_set"]
@@ -138,8 +140,7 @@ def is_validation_epoch(epoch_i: int):
 
 def train_csgo(dataset_config_path: Path,
                train_config_path: Path,
-               run_name: str = None,
-               loss_calculation_mode='target'):
+               run_name: str = None):
 
     print("Start training process...")
 
@@ -156,7 +157,7 @@ def train_csgo(dataset_config_path: Path,
     OptimizerType = torch.optim.Adam
 
     dataset_files_partition = prepare_dataset.get_dataset_partitions(
-        DATASET_CONFIG["paths"]["training_files_path"], [0.8, 0.2, 0])
+        str(DATASET_CONFIG["paths"]["training_files_path"] / TRAIN_CONFIG["training"]["map"]), [0.8, 0.2, 0])
 
     # the dataset returns a batch when called (because we get the whole batch from one file), the batch size of the data loader thus is set to 1 (default)
     # epoch size is how many elements the iterator of the generator will provide, NOTE should not be too small, because it have a significant overhead p=0.05
@@ -192,7 +193,8 @@ def train_csgo(dataset_config_path: Path,
         {
             "feature_set": TRAIN_CONFIG["training"]["feature_set"],
             "lr": TRAIN_CONFIG["training"]["lr"],
-            "batch_size": training_set.batch_row_size
+            "batch_size": training_set.batch_row_size,
+            "map": TRAIN_CONFIG["training"]["map"]
         }, {})
 
     #dummy_X, dummy_y, dummy_player_i = next(iter(training_generator))
@@ -573,12 +575,15 @@ def train_csgo(dataset_config_path: Path,
 
         model_name = data_loader.MODEL_NAME_TEMPLATE.format(
             run_name=run_name,
-            epoch_i=epoch_i,
-            feature_set=training_set.feature_set)
+            epoch_i=epoch_i)
 
         if (epoch_i % TRAIN_CONFIG["training"]["checkpoint_epoch"]
             ) == 0 and epoch_i > 0:
-            torch.save(model.state_dict(), f'models/{model_name}.model')
+            checkpoint = {
+                'train_config': TRAIN_CONFIG,
+                'state_dict': model.state_dict()
+            }
+            torch.save(checkpoint, f'models/{run_name}/{model_name}.model')
 
         #CLI
         train_prog_bar.update()
