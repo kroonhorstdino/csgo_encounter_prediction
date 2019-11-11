@@ -17,6 +17,9 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 from torch.utils.data.dataset import Dataset
 '''
+sys.path.insert(0, str(Path.cwd() / 'training/'))
+
+import models
 
 
 def get_minibatch_balanced_player(
@@ -320,8 +323,30 @@ def load_sample_h5_as_df(drop_ticks: bool, key: str=None):
         key=key)
 
 
-def load_model(model_run_name, epoch_i):
-    pass
+def load_model_to_test(epoch_i:int=100, model_full_name: str=None, num_all_player_features=None):
+    MODELS_PATH = Path('models/')
+
+    checkpoint_path = str(MODELS_PATH / f'{model_full_name}.model')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    TRAIN_CONFIG = checkpoint["train_config"]
+
+    #Recreate
+    model = models.SharedWeightsCSGO(
+        num_all_player_features,
+        shared_layer_sizes = TRAIN_CONFIG["topography"]["shared_layer_sizes"],
+        dense_layer_sizes = TRAIN_CONFIG["topography"]["dense_layer_sizes"]
+    )
+
+    model.eval()
+    model.to(device)
+
+    model.load_state_dict(checkpoint['state_dict'])
+    for parameter in model.parameters():
+        parameter.requires_grad = False
+    
+    return model
 
 
 def get_team_iterables():
@@ -357,7 +382,7 @@ ITEM_DEFINITION_INDEX_MAP: dict = load_json(
 WEAPON_COLUMN_FILLNA_VALUES = dict(
     map(lambda name: (name, 42.0), get_feature_column_names('CurrentWeapon')))
 
-MODEL_NAME_TEMPLATE = "model_{run_name}_EPOCH_{epoch_i}_f_{feature_set}_l_{label_set}"
+MODEL_NAME_TEMPLATE = "model_{run_name}_EPOCH_{epoch_i}"
 
 # Testing
 if __name__ == "__main__":
@@ -367,4 +392,5 @@ if __name__ == "__main__":
 
     #a = [[get_ally_team_iterable_index(player_i),get_enemy_team_iterable_index(player_i)] for player_i in range(10)]
     #print(a)
-    pass
+    a = load_model_to_test(1000,'test_4\modelstr_test_4_EPOCH_2099',2610)
+    print(a)

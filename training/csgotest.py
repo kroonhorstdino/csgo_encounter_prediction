@@ -167,7 +167,7 @@ def train_csgo(dataset_config_path: Path,
                                         isValidationSet=False)
     training_generator = torch.utils.data.DataLoader(training_set,
                                                      batch_size=1,
-                                                     shuffle=False)
+                                                     shuffle=True)
 
     validation_set = CounterStrikeDataset(DATASET_CONFIG,
                                           TRAIN_CONFIG,
