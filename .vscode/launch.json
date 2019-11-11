@@ -12,8 +12,8 @@
       "console": "integratedTerminal",
       "args": [
         "-m",
-        "preprocess",
-        "-vvvv"
+        "randomize",
+        "-vvv"
       ]
     },
     {
@@ -43,7 +43,11 @@
       "type": "python",
       "request": "launch",
       "program": "${workspaceFolder}/training/csgotest.py",
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
+      "args": [
+        "-name",
+        "test_6"
+      ]
     }
   ]
 }

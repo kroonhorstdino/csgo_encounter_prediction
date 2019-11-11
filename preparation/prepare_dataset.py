@@ -54,9 +54,11 @@ def get_dataset_partitions(files_path: Path, split_percentages=[0.8, 0.1,
 
 def parse_data(demo_files_paths: List[Path],
                parsed_csv_files_path: Path,
-               worker_id=0):
+               worker_id=0,
+               override=False):
 
     num_failed_parse = 0
+    num_skipped = 0
 
     parse_prog_bar = tqdm(desc="Parsing progress", total=len(demo_files_paths))
 
@@ -79,8 +81,19 @@ def parse_data(demo_files_paths: List[Path],
 
         # Just to be sure
         parsing_script_location = str(Path('./preparation/parsing.js'))
-        csv_file = str(file_path)
+        demo_file = str(file_path)
         target_dir = str(parsed_csv_files_path)
+
+        new_file_path = Path(target_dir) / file_path.with_suffix('.csv').name
+        if (override == False and Path.is_file(new_file_path)):
+            num_skipped += 1
+            parse_prog_bar.update()
+            parse_prog_bar.set_postfix({
+                "Current file": file_path.stem,
+                "Failed at": num_failed_parse,
+                "Skipped": num_skipped
+            })
+            continue  #Skip this file if we don't want to override again
 
         #Platform dependant NOTE:
         shell_bool = False
@@ -88,7 +101,7 @@ def parse_data(demo_files_paths: List[Path],
 
         # Use parsing.js to parse demo FIXME: Depending on system it may be 'node' or 'nodejs'
         completedProcess = subprocess.run([
-            'node', parsing_script_location, csv_file, target_dir,
+            'node', parsing_script_location, demo_file, target_dir,
             str(args.verbose)
         ],
                                           shell=shell_bool)
@@ -100,7 +113,8 @@ def parse_data(demo_files_paths: List[Path],
         parse_prog_bar.update()
         parse_prog_bar.set_postfix({
             "Current file": file_path.stem,
-            "Failed at": num_failed_parse
+            "Failed at": num_failed_parse,
+            "Skipped": num_skipped
         })
 
     parse_prog_bar.set_description("Preprocessing finished")
@@ -116,6 +130,8 @@ def preprocess_data(parsed_csv_files_list: List[Path],
         Processes data from matches in .csv files to .h5 files that contain all nessecary features for training
         Uses parameters in config #WIP
     '''
+
+    #print(parsed_csv_files_list)
 
     prep_prog_bar = tqdm(desc="Preprocessing progress",
                          total=len(parsed_csv_files_list))
@@ -145,13 +161,14 @@ def preprocess_data(parsed_csv_files_list: List[Path],
         prep_prog_bar.write("Adding one hot encoding for player aim on enemy")
         df = preprocess.add_one_hot_encoding_angles(df)
 
-        target_path = str(processed_files_path / f'{parsed_csv_file.stem}.h5')
+        target_path_new = str(processed_files_path /
+                              f'{parsed_csv_file.stem}.h5')
 
-        #print(target_path)
+        print(target_path_new)
 
         try:
             #Save to hdf and if specified, remove old csv file
-            df.to_hdf(target_path, key='player_info', mode='w')
+            df.to_hdf(target_path_new, key='player_info', mode='w')
         except:
             print("Couldn't save to dataframe... ")
             raise
@@ -177,19 +194,32 @@ def randomize_data(processed_h5_files_list: List[Path],
     if not os.path.exists(str(randomized_files_path)):
         os.makedirs(str(randomized_files_path))
 
-    # Go through list with files_per_worker steps
-    for i, list_index in enumerate(
-            range(0, len(processed_h5_files_list), files_per_worker)):
-        files_list = processed_h5_files_list[list_index:min(
-            list_index + files_per_worker, len(processed_h5_files_list))]
+    for map_name in FEATURES_INFO["maps"]:
+        processed_h5_files_per_map = list(
+            filter(lambda file: map_name + "." in file.name,
+                   processed_h5_files_list))
 
-        rand_progress_bar.set_postfix({"Last file": files_list[0].stem})
+        if len(processed_h5_files_per_map) == 0:
+            continue
 
-        randomize.randomize_processed_files(
-            files_list, randomized_files_path,
-            config["randomization"]["chunk_row_size"], i)
+        map_files_dir = str(randomized_files_path / map_name)
+        if (not os.path.exists(map_files_dir)):
+            os.makedirs(map_files_dir)
 
-        rand_progress_bar.update(len(files_list))
+        # Go through list with files_per_worker steps
+        for i, list_index in enumerate(
+                range(0, len(processed_h5_files_per_map), files_per_worker)):
+            files_list = processed_h5_files_per_map[list_index:min(
+                list_index +
+                files_per_worker, len(processed_h5_files_per_map))]
+
+            rand_progress_bar.set_postfix({"Last file": files_list[0].stem})
+
+            randomize.randomize_processed_files(
+                files_list, Path(map_files_dir),
+                config["randomization"]["chunk_row_size"], i)
+
+            rand_progress_bar.update(len(files_list))
 
     rand_progress_bar.write("Randomization finished...")
     rand_progress_bar.set_description("Randomization finished")
@@ -225,13 +255,17 @@ def prepare_dataset():
     # PARSE DATA
     parse_data(demo_files_list,
                Path(config["paths"]["parsed_files_path"]),
-               worker_id=0)
+               worker_id=0,
+               override=args.override)
 
     all_progress_bar.update()
     all_progress_bar.set_postfix({"Status": "Preprocessing"})
 
     # PREPROCESS DATA
-    parsed_csv_files_list = list(filter(lambda name: "death" not in name, data_loader.get_files_in_directory(
+    parsed_csv_files_list = list(
+        filter(
+            lambda name: "death" not in name,
+            data_loader.get_files_in_directory(
                 Path(config["paths"]["parsed_files_path"]), ".csv")))
     preprocess_data(parsed_csv_files_list,
                     Path(config["paths"]["processed_files_path"]))
@@ -248,6 +282,8 @@ def prepare_dataset():
     all_progress_bar.update()
     all_progress_bar.set_postfix({"Status": "Completed"})
 
+
+FEATURES_INFO = data_loader.load_json('config/features_info.json')
 
 if __name__ == '__main__':
 
@@ -269,9 +305,11 @@ if __name__ == '__main__':
                     type=str,
                     help="Mode of preparation")
     # Option to delete old files that are generated in the in-between steps of preparation (.csv, .h5)
-    ap.add_argument("-deleteold",
-                    required=False,
-                    help="Verbosity intensity | Only 2 tiers")
+    ap.add_argument(
+        "-override",
+        required=False,
+        action='store_true',
+        help="Override old files, if left out just adds files not yet present")
     # Adjust verbosity level from 0 to 4 -v ... -vvvv
     ap.add_argument("-verbose",
                     "-v",
@@ -302,12 +340,16 @@ if __name__ == '__main__':
             demo_files_list = data_loader.get_files_in_directory(
                 Path(config["paths"]["demo_files_path"]), '.dem')
             parse_data(demo_files_list,
-                       Path(config["paths"]["parsed_files_path"]))
+                       Path(config["paths"]["parsed_files_path"]),
+                       override=args.override)
         elif (args.mode == 'preprocess'):
             print("Only preprocessing...")
-            parsed_csv_files_list = filter(lambda name: "death" not in name, data_loader.get_files_in_directory(
-                Path(config["paths"]["parsed_files_path"]), ".csv"))
-            preprocess_data(list(parsed_csv_files_list),
+            parsed_csv_files_list = data_loader.get_files_in_directory(
+                Path(config["paths"]["parsed_files_path"]), ".csv")
+            parsed_csv_files_list = list(
+                filter(lambda name: "death" not in name.name,
+                       parsed_csv_files_list))
+            preprocess_data(parsed_csv_files_list,
                             Path(config["paths"]["processed_files_path"]))
         elif (args.mode == 'randomize'):
             processed_h5_files_list = data_loader.get_files_in_directory(

@@ -34,7 +34,6 @@ import preprocess
 import prepare_dataset
 
 PATH_RESULTS = Path('results')
-
 '''
     TODO: Download files in demo databse of lasse
     TODO: Jupyter test_angle_prep
@@ -44,6 +43,7 @@ PATH_RESULTS = Path('results')
     TODO: Hyperparameter search
     TODO: Test on a match
 '''
+
 
 class CounterStrikeDataset(Dataset):
     def __init__(self,
@@ -78,15 +78,19 @@ class CounterStrikeDataset(Dataset):
         # Num of batches per chunk in dataset
         self.batches_per_chunk = int(self.num_batches / self.num_chunks)
 
+        self.num_of_samples = self.num_chunks * self.chunks_row_size
+
         self.num_epoch = train_config["training"]["num_epoch"]
 
         self.death_time_window = data_config["preprocessing"][
             "death_time_window"]
 
         # Small sample of dataset
-        dataset_sample = data_loader.load_h5_as_df(self.dataset_files[0],
-                                                   False,
-                                                   self.all_column_names)
+        dataset_sample = data_loader.load_h5_as_df(
+            self.dataset_files[0],
+            False,
+            key='player_info',
+            column_names=self.all_column_names)
         '''
             Chunks -> randomized files. Always size of a power of 2
             Batches -> Also always power of 2
@@ -108,6 +112,7 @@ class CounterStrikeDataset(Dataset):
 
         chunk = data_loader.load_h5_as_df(chunk_file,
                                           True,
+                                          key='player_info',
                                           column_names=self.all_column_names)
         # .iloc[start_index:end_index] A batch is going to be loaded from this chunk >batches_per_chunk< times anyways. If random, may be not so bad NOTE: FIXME:
 
@@ -157,7 +162,9 @@ def train_csgo(dataset_config_path: Path,
     OptimizerType = torch.optim.Adam
 
     dataset_files_partition = prepare_dataset.get_dataset_partitions(
-        str(DATASET_CONFIG["paths"]["training_files_path"] / TRAIN_CONFIG["training"]["map"]), [0.8, 0.2, 0])
+        str(
+            Path(DATASET_CONFIG["paths"]["training_files_path"]) /
+            TRAIN_CONFIG["training"]["map"]), [0.8, 0.2, 0])
 
     # the dataset returns a batch when called (because we get the whole batch from one file), the batch size of the data loader thus is set to 1 (default)
     # epoch size is how many elements the iterator of the generator will provide, NOTE should not be too small, because it have a significant overhead p=0.05
@@ -192,7 +199,9 @@ def train_csgo(dataset_config_path: Path,
     writer.add_hparams(
         {
             "feature_set": TRAIN_CONFIG["training"]["feature_set"],
+            "label_set": TRAIN_CONFIG["training"]["label_set"],
             "lr": TRAIN_CONFIG["training"]["lr"],
+            "num_samples": training_set.num_of_samples,
             "batch_size": training_set.batch_row_size,
             "map": TRAIN_CONFIG["training"]["map"]
         }, {})
@@ -518,13 +527,6 @@ def train_csgo(dataset_config_path: Path,
             validation_average_precision_score = average_precision_score(
                 epoch_all_y, epoch_all_pred)
 
-            writer.add_scalars(
-                "Validation/Scores", {
-                    "ROC Score": validation_roc_auc_score,
-                    "Average Precision Score":
-                    validation_average_precision_score
-                }, epoch_i)
-
             all_validation_roc_scores.append(validation_roc_auc_score)
             all_validation_pr_scores.append(validation_average_precision_score)
 
@@ -573,9 +575,8 @@ def train_csgo(dataset_config_path: Path,
                     np.array(all_train_per_sec_predictions_std))
         '''
 
-        model_name = data_loader.MODEL_NAME_TEMPLATE.format(
-            run_name=run_name,
-            epoch_i=epoch_i)
+        model_name = data_loader.MODEL_NAME_TEMPLATE.format(run_name=run_name,
+                                                            epoch_i=epoch_i)
 
         if (epoch_i % TRAIN_CONFIG["training"]["checkpoint_epoch"]
             ) == 0 and epoch_i > 0:
@@ -619,5 +620,4 @@ if __name__ == "__main__":
 
     train_csgo(dataset_config_path=args.dataconf,
                train_config_path=args.trainconf,
-               run_name=args.name,
-               loss_calculation_mode=args.loss_mode)
+               run_name=args.name)

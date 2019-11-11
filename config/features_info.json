@@ -506,8 +506,8 @@
 	"player_labels": {
 		"discrete_die_within_5_seconds": [
 			{
-			"id": "die_within_5_seconds",
-			"title": "die_within_5_seconds"
+				"id": "die_within_5_seconds",
+				"title": "die_within_5_seconds"
 			}
 		],
 		"time_to_death_within_5_seconds": [
@@ -516,6 +516,15 @@
 				"title": "time_to_death_within_5_seconds"
 			}
 		]
-
-	}
+	},
+	"maps": [
+		"dust",
+		"dust2",
+		"nuke",
+		"mirage",
+		"vertigo",
+		"train",
+		"overpass",
+		"inferno"
+	]
 }

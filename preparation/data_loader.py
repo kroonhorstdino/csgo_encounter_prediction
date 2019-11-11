@@ -264,7 +264,7 @@ def load_csv_as_df(filePath: Path) -> pd.DataFrame:
 
 def load_h5_as_df(filePath: Path,
                   drop_ticks: bool,
-                  key: str='player_info',
+                  key: str = 'player_info',
                   column_names: List[str] = None) -> pd.DataFrame:
     '''
         Loads a dataframe from .h5 file with given key \n
@@ -279,7 +279,7 @@ def load_h5_as_df(filePath: Path,
         df = df[column_names]
 
     if (drop_ticks):
-        print(df.index.name)
+        #print(df.index.name)
         # Reset index and drop it
         df.reset_index(drop=True, inplace=True)
 
@@ -311,19 +311,20 @@ def load_sample_csv_as_df():
                 DATASET_CONFIG["paths"]["parsed_files_path"], '.csv')))
 
 
-def load_sample_h5_as_df(drop_ticks: bool, key: str=None):
+def load_sample_h5_as_df(drop_ticks: bool, key: str = None):
     '''
         Get a sample h5 file as dataframe from training data
     '''
-    return load_h5_as_df(
-        random.choice(
-            get_files_in_directory(
-                DATASET_CONFIG["paths"]["training_files_path"], '.csv')),
-        drop_ticks,
-        key=key)
+    return load_h5_as_df(random.choice(
+        get_files_in_directory(DATASET_CONFIG["paths"]["training_files_path"],
+                               '.csv')),
+                         drop_ticks,
+                         key=key)
 
 
-def load_model_to_test(epoch_i:int=100, model_full_name: str=None, num_all_player_features=None):
+def load_model_to_test(epoch_i: int = 100,
+                       model_full_name: str = None,
+                       num_all_player_features=None):
     MODELS_PATH = Path('models/')
 
     checkpoint_path = str(MODELS_PATH / f'{model_full_name}.model')
@@ -335,9 +336,8 @@ def load_model_to_test(epoch_i:int=100, model_full_name: str=None, num_all_playe
     #Recreate
     model = models.SharedWeightsCSGO(
         num_all_player_features,
-        shared_layer_sizes = TRAIN_CONFIG["topography"]["shared_layer_sizes"],
-        dense_layer_sizes = TRAIN_CONFIG["topography"]["dense_layer_sizes"]
-    )
+        shared_layer_sizes=TRAIN_CONFIG["topography"]["shared_layer_sizes"],
+        dense_layer_sizes=TRAIN_CONFIG["topography"]["dense_layer_sizes"])
 
     model.eval()
     model.to(device)
@@ -345,7 +345,7 @@ def load_model_to_test(epoch_i:int=100, model_full_name: str=None, num_all_playe
     model.load_state_dict(checkpoint['state_dict'])
     for parameter in model.parameters():
         parameter.requires_grad = False
-    
+
     return model
 
 
@@ -392,5 +392,5 @@ if __name__ == "__main__":
 
     #a = [[get_ally_team_iterable_index(player_i),get_enemy_team_iterable_index(player_i)] for player_i in range(10)]
     #print(a)
-    a = load_model_to_test(1000,'test_4\modelstr_test_4_EPOCH_2099',2610)
+    a = load_model_to_test(1000, 'test_4\modelstr_test_4_EPOCH_2099', 2610)
     print(a)

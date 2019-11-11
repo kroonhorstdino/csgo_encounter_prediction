@@ -15,7 +15,7 @@ import data_loader
 
 
 def randomize_processed_file(file_path: Path):
-    df = data_loader.load_h5_as_df(file_path, True, 'player')
+    df = data_loader.load_h5_as_df(file_path, True, 'player_info')
 
     return randomize_processed_dataframe(df)
 

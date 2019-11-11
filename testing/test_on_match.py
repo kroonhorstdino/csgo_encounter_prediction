@@ -36,14 +36,16 @@ DATASET_CONFIG = data_loader.load_json(DATASET_CONFIG_PATH)
 
 FEATURES_INFO_PATH = Path('config' / 'features_info.json')
 
+
 class CounterStrikeTestset(Dataset):
-    def __init__(self,
-                 train_config):
+    def __init__(self, train_config):
 
         self.map = train_config["training"]["map"]
 
-        self.testset_files = data_loader.get_files_in_directory(Path(DATASET_CONFIG["paths"]["test_files_path"]))
-        self.testset_files = list(filter(lambda name: (map + '.') in name.name, self.testset_files))
+        self.testset_files = data_loader.get_files_in_directory(
+            Path(DATASET_CONFIG["paths"]["test_files_path"]))
+        self.testset_files = list(
+            filter(lambda name: (map + '.') in name.name, self.testset_files))
 
         self.feature_set = train_config["training"]["feature_set"]
         self.label_set = train_config["training"]["label_set"]
@@ -54,9 +56,8 @@ class CounterStrikeTestset(Dataset):
         self.all_column_names = self.features_column_names + self.labels_column_names
 
         # Small sample of dataset
-        testset_sample = data_loader.load_h5_as_df(self.testset_files[0],
-                                                   False,
-                                                   self.all_column_names).iloc[0:10]
+        testset_sample = data_loader.load_h5_as_df(
+            self.testset_files[0], False, self.all_column_names).iloc[0:10]
         self.num_players = 10
         self.num_all_player_features = data_loader.get_num_player_features(
             testset_sample.columns)
@@ -64,16 +65,17 @@ class CounterStrikeTestset(Dataset):
     def __getitem__(self, index):
 
         match_file = self.testset_files[index]
-        match_df = data_loader.load_h5_as_df(match_file,
-                                          False,
-                                          column_names=self.all_column_names)
+        match_df = data_loader.load_h5_as_df(
+            match_file, False, column_names=self.all_column_names)
 
-        player_features, classification_labels = data_loader.split_data_into_minibatch(match_df)
+        player_features, classification_labels = data_loader.split_data_into_minibatch(
+            match_df)
 
-        return player_features, classification_labels, match_df.index.to_numpy(), self.testset_files[index]
+        return player_features, classification_labels, match_df.index.to_numpy(
+        ), self.testset_files[index]
 
     def __len__(self):
-	    return len(self.testset_files)
+        return len(self.testset_files)
 
 
 def test_on_match(run_name: str):
@@ -108,7 +110,7 @@ def test_on_match(run_name: str):
     print("Creating tensorboard summary writer")
 
     writer = SummaryWriter(str(Path(PATH_RESULTS / run_name)))
-    writer.add_hparams({"test_set": "dummy_value"}, {})
+    #writer.add_hparams({"test_set": "dummy_value"}, {})
 
     #criterion = nn.CrossEntropyLoss()
     binary_classification_loss = torch.nn.BCELoss()
@@ -141,10 +143,9 @@ def test_on_match(run_name: str):
         "not_die_accuracy": 0.0
     }
 
-
     test_prog_bar = tqdm(total=test_set.__len__(),
-                          desc="MATCH:",
-                          dynamic_ncols=True)
+                         desc="MATCH:",
+                         dynamic_ncols=True)
     epoch_prog_bar = tqdm(desc="Match testing progress",
                           postfix=epoch_display_stats,
                           dynamic_ncols=True)
@@ -167,7 +168,8 @@ def test_on_match(run_name: str):
     epoch_accuracy_not_die = []
 
     #Iterate through all matches
-    for match_i, (all_X, all_y, match_indecies, match_file) in enumerate(test_generator):
+    for match_i, (all_X, all_y, match_indecies,
+                  match_file) in enumerate(test_generator):
 
         #Input and labels from match
         all_X = [(player_X[0, :]).to(device) for player_X in all_X]
@@ -204,7 +206,7 @@ def test_on_match(run_name: str):
         epoch_accuracy_all_player.append(
             batch_accuracy_all_player_mean
         )  # Add mean accuracy to epoch accuracies
-        
+
         # these have varying size, so calculating the proper mean across batches takes more work
         epoch_accuracy_die.extend(batch_accuracy_die)
         epoch_accuracy_not_die.extend(batch_accuracy_not_die)
@@ -213,12 +215,25 @@ def test_on_match(run_name: str):
 
         #Save result for later analyzation
 
-        np.save(f'results/{run_name}/{match_file.name}_predictions_and_labels', np.array([output_np, all_y.numpy(), match_indecies]))
-        np.save(f'results/{run_name}/{match_file.name}_die_not_die_acc', np.array([epoch_accuracy_die, epoch_accuracy_not_die, match_indecies]))
-        np.save(f'results/{run_name}/{match_file.name}_accuracy', np.array([epoch_accuracy_all_player, match_indecies]))
+        np.save(
+            f'results/{run_name}/{match_file.name}_predictions_and_labels.npy',
+            np.array([output_np, all_y.numpy(), match_indecies]))
+        np.save(
+            f'results/{run_name}/{match_file.name}_die_not_die_acc.npy',
+            np.array(
+                [epoch_accuracy_die, epoch_accuracy_not_die, match_indecies]))
+        np.save(f'results/{run_name}/{match_file.name}_accuracy.npy',
+                np.array([epoch_accuracy_all_player, match_indecies]))
+
+        writer.add_pr_curve('Testing/{match_file}/PR_Curve',
+                            output_np,
+                            all_y.numpy(),
+                            global_step=None,
+                            num_thresholds=127,
+                            weights=None,
+                            walltime=None)
 
     epoch_prog_bar.reset()
-
     '''
     writer.add_scalars(
         "Training/Loss", {
@@ -243,7 +258,6 @@ def test_on_match(run_name: str):
             np.array(epoch_accuracy_not_die).mean()
         }, epoch_i)
     '''
-
     '''
     all_test_losses.append(np.array(epoch_loss_all_player).mean())
     all_test_accuracies.append(np.array(epoch_accuracy_all_player).mean())
@@ -260,4 +274,3 @@ def test_on_match(run_name: str):
     test_prog_bar.update()
 
     writer.close()
-

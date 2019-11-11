@@ -21,6 +21,6 @@
 		"num_epoch": 50000,
 		"lr": 0.0001,
 		"checkpoint_epoch": 100,
-		"map": "dust2"
+		"map": "inferno"
 	}
 }

@@ -159,6 +159,7 @@ def add_die_within_sec_labels(df: pd.DataFrame,
 
     return df
 
+
 def add_death_in_seconds_label(df: pd.DataFrame):
     #TODO: Continoous
     '''time_points = data.values[:,0]
@@ -297,7 +298,7 @@ def add_one_hot_encoding_angles(df: pd.DataFrame, discrete=True):
         #end_time = time.time()
 
         #print(f'{end_time - start_time} seconds for one tick!')
-        print(f'{index_label} tick is parsed')
+        #print(f'{index_label} tick is parsed')
 
     # Drop eye angle columns which only contain yaw and pitch for training
     df.drop(columns=EYEANGLES_COLUMN_NAMES, inplace=True)
@@ -378,11 +379,10 @@ def all_player_eyeAngles_to_direction_vec3(df: pd.DataFrame,
         yawDeg = df.at[index_label, EYEANGLE_YAW_COLUMN_NAMES[player_i]]
 
         pitch = math.radians(pitchDeg)
-        yaw = math.radians(yawDeg) #Y is positive on left side
+        yaw = math.radians(yawDeg)  #Y is positive on left side
 
-        # COPIED FROM https://stackoverflow.com/a/10569719 BY Neil Forrester
-        x = math.cos(yaw)*math.cos(pitch)
-        y = math.sin(yaw)*math.cos(pitch)
+        x = math.cos(yaw) * math.cos(pitch)
+        y = math.sin(yaw) * math.cos(pitch)
         z = math.sin(pitch)
 
         all_player_eyeAngles_to_direction_vec3_list.append(
