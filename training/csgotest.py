@@ -182,7 +182,7 @@ def train_csgo(dataset_config_path: Path,
                                           isValidationSet=True)
     validation_generator = torch.utils.data.DataLoader(validation_set,
                                                        batch_size=1,
-                                                       shuffle=True)
+                                                       shuffle=False)
 
     print("(Mini-)batches per epoch: " + str(training_set.__len__()))
 
@@ -315,7 +315,10 @@ def train_csgo(dataset_config_path: Path,
             batch_loss_target_player = binary_classification_loss(
                 player_i_output, player_i_labels)
 
-            batch_loss_target_player.backward()
+            batch_loss_all_player = binary_classification_loss(output, y)
+
+            #batch_loss_target_player.backward()
+            batch_loss_all_player.backward()
             optimizer.step()
 
             # Log loss
@@ -323,9 +326,9 @@ def train_csgo(dataset_config_path: Path,
                 batch_loss_target_player.cpu().detach().numpy().astype(
                     np.float32))
 
-            batch_loss_all_player = binary_classification_loss(
+            batch_loss_all_player_np = binary_classification_loss(
                 output, y).cpu().detach().numpy().astype(np.float32)
-            epoch_loss_all_player.append(batch_loss_all_player)
+            epoch_loss_all_player.append(batch_loss_all_player_np)
 
             #
             '''
@@ -584,6 +587,11 @@ def train_csgo(dataset_config_path: Path,
                 'train_config': TRAIN_CONFIG,
                 'state_dict': model.state_dict()
             }
+            models_path = Path('models/') / run_name
+
+            if (not Path.exists(models_path)):
+                os.mkdir(models_path)
+
             torch.save(checkpoint, f'models/{run_name}/{model_name}.model')
 
         #CLI
