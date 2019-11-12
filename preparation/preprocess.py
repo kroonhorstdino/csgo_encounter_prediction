@@ -421,7 +421,7 @@ if __name__ == "__main__":
     #sample = data_loader.load_sample_csv_as_df()
 
     #l = all_player_eyeAngles_to_direction_vec3(sample, sample.index[0])
-
-    # NOTE: Seems to work, raycasting
-    #print(Sphere(vec3(500,0,0),1,0).intersects(vec3(0,0,0),vec3(1,0,0)))
-    pass
+    cs = data_loader.load_csv_as_df(
+        Path('../../csgo_dataset/parsed_files/renegades-vs-g2-m1-inferno.csv'))
+    d = add_one_hot_encoding_angles(cs.loc[10330 - 50:10330 + 50])
+    print(d)

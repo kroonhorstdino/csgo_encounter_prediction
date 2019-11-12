@@ -392,5 +392,5 @@ if __name__ == "__main__":
 
     #a = [[get_ally_team_iterable_index(player_i),get_enemy_team_iterable_index(player_i)] for player_i in range(10)]
     #print(a)
-    a = load_model_to_test(1000, 'test_4\modelstr_test_4_EPOCH_2099', 2610)
+    a = load_model_to_test(1000, 'exp_0', 2610)
     print(a)

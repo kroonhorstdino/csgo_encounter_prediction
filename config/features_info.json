@@ -45,6 +45,14 @@
 			"one_hot_weapon",
 			"one_hot_aim_on_enemy"
 		],
+		"training_less_than_all": [
+			"basic",
+			"player_movement",
+			"distance_to_enemy",
+			"tactical",
+			"one_hot_weapon",
+			"one_hot_aim_on_enemy"
+		],
 		"parse_all": [
 			"basic",
 			"player_movement",
