@@ -274,3 +274,7 @@ def test_on_match(run_name: str):
     test_prog_bar.update()
 
     writer.close()
+
+
+if __name__ == '__main__':
+    test_on_match('exp_0')
