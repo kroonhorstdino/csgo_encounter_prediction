@@ -86,10 +86,11 @@ class Sphere:
         return pred
 
 
-def add_die_within_sec_labels(df: pd.DataFrame,
+def add_die_within_sec_labels(df: pd.DataFrame, df_deaths: pd.DataFrame,
                               time_window_to_next_death: int = 5,
                               demo_tickrate: int = 64,
-                              parsing_tickrate: int = 8) -> pd.DataFrame:
+                              parsing_tickrate: int = 8
+                              ) -> pd.DataFrame:
     '''
     Adds labels that contain time to next death within x next seconds to the dataframe
 
@@ -98,8 +99,7 @@ def add_die_within_sec_labels(df: pd.DataFrame,
     IMPORTANT: Data must not be shuffled. This function relies on the ticks being in the correct order!
     '''
 
-    # How many rows in the future have to be considered for labeling
-    max_rows_in_future = parsing_tickrate * time_window_to_next_death
+    '''
     # Max time at which to label if someone is going to die in the next x seconds
     max_ticks_in_future = demo_tickrate * time_window_to_next_death
 
@@ -110,7 +110,40 @@ def add_die_within_sec_labels(df: pd.DataFrame,
     # Contains the columns that hold labels for death within x next seconds
     # 0: not dead 1: is dead
     label_deathState_column_lists = [[] for i in range(10)]
+    '''
 
+    die_within_seconds_column_names = data_loader.get_die_within_seconds_column_names(10, time_window_to_next_death)
+
+    new_df = pd.DataFrame(0.0,columns=die_within_seconds_column_names,
+                                     index=df.index,
+                                     dtype=np.float32) #Create new dataframe filled with zeros
+    
+    # Go through all deaths recorded in match and set labels accordingly
+    for death_index in df_deaths.index:
+        death_index_in_df = df.index.asof(death_index)  #Gets closest previous index to death_index in match df
+        
+        round_of_kill = df_deaths.at[death_index, 'Round']
+
+        time_of_death = df_deaths.at[death_index, 'Time']
+        max_time_in_past = time_of_death - float(time_window_to_next_death) #Get first time in past where labelling can be applied
+
+        victim_id = df_deaths.at[death_index, 'victimIndex']  # Who died
+        attacker_id = df_deaths.at[death_index, 'attackerIndex']  # Who is the killer
+
+        if victim_id == attacker_id:
+            continue #Suicides should not be included
+
+        for match_ticks in df.loc[max_time_in_past:time_of_death, 'Time'].index:  #All ticks within time window of death
+            if df.at[match_ticks, 'Round'] != round_of_kill: #Cap at border to last round
+                continue
+            new_df.at[match_ticks, die_within_seconds_column_names[victim_id]] = 1.0  # Will die within next x seconds
+
+    df = pd.concat([df, new_df], sort=True, axis=1).astype(np.float32)
+    return df
+    
+    #NOTE: Legacy code
+
+    '''
     # Go through each player and set die_within labels for entire column
     for player_i, player_isAlive_column_name in enumerate(isAlive_colum_names):
         # Get isAlive column for player
@@ -156,6 +189,20 @@ def add_die_within_sec_labels(df: pd.DataFrame,
             np.float32)
 
         # print(df.head(20))
+    return df
+    '''
+
+    
+
+def add_sec_to_death_labels(df: pd.DataFrame, sec_to_death_list: List[int]):
+    '''
+        Adds labels that tell the time until death from normalized from 0 to 1. \n
+        0 represents a time greater or equal to the time window given, 1 represents 0.0 seconds to death.
+    '''
+
+    sec_to_death_label_np = np.zeros(df.shape)
+
+    
 
     return df
 
@@ -243,7 +290,7 @@ def add_one_hot_encoding_angles(df: pd.DataFrame, discrete=True):
         Removes 'EyeAnglesPitch' and 'EyeAnglesYaw' columns for each player
     '''
 
-    #STOLEN FROM https://github.com/jamesbowman/raytrace/blob/master/rt3.py
+    #COPIED FROM https://github.com/jamesbowman/raytrace/blob/master/rt3.py
 
     teams = data_loader.get_team_iterables()
     # One hot encoded data will be stored here and added later to main df
