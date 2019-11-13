@@ -145,13 +145,16 @@ def preprocess_data(parsed_csv_files_list: List[Path],
     for parsed_csv_file in parsed_csv_files_list:
         prep_prog_bar.set_postfix({"Current file": parsed_csv_file.stem})
 
+        parsed_death_csv_file = parsed_csv_file.with_suffix("_deaths.csv")
+
         df = data_loader.load_csv_as_df(parsed_csv_file)
+        df_deaths = data_loader.load_csv_as_df(parsed_death_csv_file)
 
         prep_prog_bar.write("Adding 'dies within x seconds' labels for a " +
                             str(time_window_to_next_death) +
                             " second time window to dataframe...")
 
-        df = preprocess.add_die_within_sec_labels(df)
+        df = preprocess.add_die_within_sec_labels(df,df_deaths)
         df = preprocess.undersample_pure_not_die_ticks(
             df, removal_frac=0.1)  #NOTE: Doesnt work yet
 
