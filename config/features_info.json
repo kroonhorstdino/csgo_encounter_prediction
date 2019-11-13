@@ -12,7 +12,12 @@
 		{
 			"id": "tick",
 			"title": "Tick",
-			"type": "int"
+			"type": "float32"
+		},
+		{
+			"id": "time",
+			"title": "Time",
+			"type": "float32"
 		}
 	],
 	"player_features_sets": {

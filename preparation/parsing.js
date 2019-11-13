@@ -126,6 +126,7 @@ class DemoFileParser {
             //const headshotText = e.headshot ? " HS" : "";
 
             this.deathDataBuffer.push({
+                "time": this.demoFile.currentTime,
                 "tick": this.demoFile.currentTick,
                 "attackerIndex": attackerIndex,
                 "attackerName": attackerName,
@@ -356,6 +357,7 @@ class DemoFileParser {
 
         //Stores info about all players from current tick
         let tickInfo = {
+            time: this.demoFile.currentTime,
             tick: currentTick
         };
 
