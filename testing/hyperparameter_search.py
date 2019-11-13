@@ -4,7 +4,7 @@ import random
 import subprocess
 import sys
 import platform
-import random
+import secrets
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path.cwd() / 'preparation/'))
 import data_loader
 
 
-def generate_random_config(default_config):
+def generate_random_config(default_config, i):
     #np.random.seed()
 
     new_conf = default_config.copy()
@@ -24,7 +24,7 @@ def generate_random_config(default_config):
 
     new_conf["training"]["label_set"] = "discrete_die_within_5_seconds"
 
-    new_conf["topography"] = random.choice([
+    new_conf["topography"] = [
         {
             "shared_layers": [200, 100, 60, 20],
             "dense_layers": [150, 75]
@@ -44,7 +44,7 @@ def generate_random_config(default_config):
         {
             "shared_layers": [2000, 1000, 500, 250, 125, 62],
             "dense_layers": [512, 256, 128, 64, 32]
-        },  # 5,5
+        },  # 6,5
         {
             "shared_layers": [1024, 512, 256, 128, 64, 32],
             "dense_layers": [150, 75]
@@ -60,7 +60,7 @@ def generate_random_config(default_config):
         {
             "shared_layers": [400, 200, 80],
             "dense_layers": [1000, 500, 250, 100, 50]
-        }  # 3,5
+        },  # 3,5'''
 
         #'''
         #{"shared_layers" : [60,20],"dense_layers" : [100]},            # 2,1
@@ -68,21 +68,24 @@ def generate_random_config(default_config):
         #{"shared_layers" : [200,100,60,20],"dense_layers" : [100]},    # 4,1
         #{"shared_layers" : [100,60,20],"dense_layers" : [150,75]},     # 3,2
         #{"shared_layers" : [200,100,60,20],"dense_layers" : [150,75]}, # 4,2
-        #{"shared_layers" : [200,100,40],"dense_layers" : [300,150,75]} # 3,3
+        {
+            "shared_layers": [200, 100, 40],
+            "dense_layers": [300, 150, 75]
+        }  # 3,3
         #'''
-    ])
+    ][i]
+
+    np.random.seed()
 
     # choose a batch size
-    new_conf["training"]["batch_size"] = int(random.choice([64, 128, 256]))
+    new_conf["training"]["batch_size"] = 128
 
-    new_conf["training"]["num_epoch"] = 200
+    new_conf["training"]["num_epoch"] = 120
 
     # choose optimitzer
     #new_conf["optimizer"] = "Adam"  # np.random.choice(["Adam","SGD"])
-    new_conf["training"]["lr"] = random.choice([
-        0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001, 0.0005, 0.0001, 0.00005,
-        0.00001
-    ])
+    new_conf["training"][
+        "lr"] = 0.002  # secrets.choice([0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001, 0.0005, 0.0001, 0.00005,0.00001])
     #new_conf["training"]["lr"] = {"lr": 10**np.random.uniform(-1, -5)}
 
     #new_conf["validation_epoch_size"] = 3
@@ -97,7 +100,7 @@ def generate_random_config(default_config):
 def get_configs(config, n):
     cfgs = []
     for i in range(n):
-        cfgs.append(generate_random_config(config))
+        cfgs.append(generate_random_config(config, i))
     return cfgs
 
 
@@ -134,4 +137,4 @@ def run_experiments(experiment_name, n):
 
 
 if __name__ == "__main__":
-    run_experiments('first_exp', 10)
+    run_experiments('second_exp', 10)

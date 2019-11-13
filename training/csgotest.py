@@ -198,12 +198,24 @@ def train_csgo(dataset_config_path: Path,
     writer = SummaryWriter(str(Path(PATH_RESULTS / run_name)))
     writer.add_hparams(
         {
-            "feature_set": TRAIN_CONFIG["training"]["feature_set"],
-            "label_set": TRAIN_CONFIG["training"]["label_set"],
-            "lr": TRAIN_CONFIG["training"]["lr"],
-            "num_samples": training_set.num_of_samples,
-            "batch_size": training_set.batch_row_size,
-            "map": TRAIN_CONFIG["training"]["map"]
+            "feature_set":
+            TRAIN_CONFIG["training"]["feature_set"],
+            "label_set":
+            TRAIN_CONFIG["training"]["label_set"],
+            "shared_layers":
+            ', '.join(
+                str(x) for x in TRAIN_CONFIG["topography"]["shared_layers"]),
+            "dense_layers":
+            ', '.join(
+                str(x) for x in TRAIN_CONFIG["topography"]["dense_layers"]),
+            "lr":
+            TRAIN_CONFIG["training"]["lr"],
+            "num_samples":
+            training_set.num_of_samples,
+            "batch_size":
+            training_set.batch_row_size,
+            "map":
+            TRAIN_CONFIG["training"]["map"]
         }, {})
 
     #dummy_X, dummy_y, dummy_player_i = next(iter(training_generator))

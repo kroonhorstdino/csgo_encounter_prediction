@@ -325,9 +325,10 @@ def load_sample_h5_as_df(drop_ticks: bool, key: str = None):
 def load_model_to_test(epoch_i: int = 100,
                        model_full_name: str = None,
                        num_all_player_features=None):
-    MODELS_PATH = Path('models/')
+    MODELS_PATH = Path(f'models/{model_full_name}')
 
-    checkpoint_path = str(MODELS_PATH / f'{model_full_name}.model')
+    checkpoint_path = str(MODELS_PATH /
+                          f'model_{model_full_name}_EPOCH_{epoch_i}.model')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     checkpoint = torch.load(checkpoint_path, map_location=device)
@@ -336,8 +337,8 @@ def load_model_to_test(epoch_i: int = 100,
     #Recreate
     model = models.SharedWeightsCSGO(
         num_all_player_features,
-        shared_layer_sizes=TRAIN_CONFIG["topography"]["shared_layer_sizes"],
-        dense_layer_sizes=TRAIN_CONFIG["topography"]["dense_layer_sizes"])
+        shared_layer_sizes=TRAIN_CONFIG["topography"]["shared_layers"],
+        dense_layer_sizes=TRAIN_CONFIG["topography"]["dense_layers"])
 
     model.eval()
     model.to(device)

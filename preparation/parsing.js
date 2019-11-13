@@ -125,14 +125,21 @@ class DemoFileParser {
 
             //const headshotText = e.headshot ? " HS" : "";
 
-            this.deathDataBuffer.push({
+            deathEventInfo = {
                 "time": this.demoFile.currentTime,
                 "tick": this.demoFile.currentTick,
                 "attackerIndex": attackerIndex,
                 "attackerName": attackerName,
                 "victimIndex": victimIndex,
                 "victimName": victimName,
-            });
+            }
+
+            if (Object.values(deathEventInfo).includes("unnamed") || Object.values(deathEventInfo).includes(-1)) {
+                console.log("Discard death event tick!")
+            }
+            else {
+                this.deathDataBuffer.push(deathEventInfo);
+            }
         });
 
         //Get player info at each relevant tick
@@ -256,7 +263,7 @@ class DemoFileParser {
         this.playerInfoBuffer.length = 0;
         this.deathDataBuffer.length = 0;
     }
-    
+
     /**
      * Returns an array of teams sorted by team handle
      * Teams are always in same order regardless of which side they're on (CT or T)!
@@ -275,7 +282,7 @@ class DemoFileParser {
         //If anything is wrong with the teams
         if (t == undefined || ct == undefined || t.members < 5 || ct.members < 5) return true;
 
-        if (this.teams == null || reset) {            
+        if (this.teams == null || reset) {
             // Sort teams by handle to ensure a constant order of teams and players
             let allTeams = [].concat(t, ct).sort((a, b) => a.handle - b.handle)
             this.teams = allTeams;
@@ -552,7 +559,7 @@ class DemoFileParser {
                 });
             }*/
 
-        let allFeatures = [... featuresInfoList["demo_features"]]
+        let allFeatures = [...featuresInfoList["demo_features"]]
 
         //Generate features per player and push into allFeatures array
         for (const feature of playerFeatures) {
