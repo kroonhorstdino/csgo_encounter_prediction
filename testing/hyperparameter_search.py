@@ -4,6 +4,7 @@ import random
 import subprocess
 import sys
 import platform
+import random
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -19,11 +20,11 @@ def generate_random_config(default_config):
     new_conf = default_config.copy()
 
     # choose a feature set
-    new_conf["training"]["feature_set"] = np.random.choice(["training_all"])
+    new_conf["training"]["feature_set"] = random.choice(["training_all"])
 
     new_conf["training"]["label_set"] = "discrete_die_within_5_seconds"
 
-    new_conf["topography"] = np.random.choice([
+    new_conf["topography"] = random.choice([
         {
             "shared_layers": [200, 100, 60, 20],
             "dense_layers": [150, 75]
@@ -72,13 +73,13 @@ def generate_random_config(default_config):
     ])
 
     # choose a batch size
-    new_conf["training"]["batch_size"] = int(np.random.choice([64, 128, 256]))
+    new_conf["training"]["batch_size"] = int(random.choice([64, 128, 256]))
 
     new_conf["training"]["num_epoch"] = 200
 
     # choose optimitzer
     #new_conf["optimizer"] = "Adam"  # np.random.choice(["Adam","SGD"])
-    new_conf["training"]["lr"] = np.random.choice([
+    new_conf["training"]["lr"] = random.choice([
         0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001, 0.0005, 0.0001, 0.00005,
         0.00001
     ])
