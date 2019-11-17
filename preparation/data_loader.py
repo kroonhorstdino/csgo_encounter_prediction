@@ -245,19 +245,23 @@ def get_files_in_directory(files_path: Path,
     return list(files_list)
 
 
-def load_csv_as_df(filePath: Path) -> pd.DataFrame:
+def load_csv_as_df(filePath: Path, cast_to_float: bool = True) -> pd.DataFrame:
     '''
         Loads parsed .csv file of match as df with all nessecary index modifications and NaN handling
         Removes Round column and sets Tick column as index for dataframe
     '''
 
-    df = pd.read_csv(filePath, sep=',', na_values='-').astype(np.float32)
+    df = pd.DataFrame
+    if (cast_to_float):
+        df = pd.read_csv(filePath, sep=',').astype(np.float32)
+        df.fillna(value=WEAPON_COLUMN_FILLNA_VALUES, inplace=True)
+        df.fillna(0, inplace=True)
+    else:
+        df = pd.read_csv(filePath, sep=',', na_values='missing')
 
     df.set_index('Tick', inplace=True)
     # NOTE: Don't drop if still relevant
     #df.drop(columns=['Round'], inplace=True)
-    df.fillna(value=WEAPON_COLUMN_FILLNA_VALUES, inplace=True)
-    df.fillna(0, inplace=True)
 
     return df
 

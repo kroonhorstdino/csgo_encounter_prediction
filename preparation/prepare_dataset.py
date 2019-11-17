@@ -125,7 +125,8 @@ def parse_data(demo_files_paths: List[Path],
 def preprocess_data(parsed_csv_files_list: List[Path],
                     processed_files_path: Path,
                     delete_old_csv: bool = False,
-                    time_window_to_next_death: int = 5):
+                    time_window_to_next_death: int = 5,
+                    override=False):
     '''
         Processes data from matches in .csv files to .h5 files that contain all nessecary features for training
         Uses parameters in config #WIP
@@ -145,16 +146,24 @@ def preprocess_data(parsed_csv_files_list: List[Path],
     for parsed_csv_file in parsed_csv_files_list:
         prep_prog_bar.set_postfix({"Current file": parsed_csv_file.stem})
 
-        parsed_death_csv_file = parsed_csv_file.with_suffix("_deaths.csv")
+        parsed_death_csv_file = parsed_csv_file.with_name(
+            parsed_csv_file.stem + "_deaths.csv")
+
+        target_path_new = str(processed_files_path /
+                              f'{parsed_csv_file.stem}.h5')
+
+        if (override == False and Path.is_file(Path(target_path_new))):
+            prep_prog_bar.update()
+            continue  #Skip this file if we don't want to override again
 
         df = data_loader.load_csv_as_df(parsed_csv_file)
-        df_deaths = data_loader.load_csv_as_df(parsed_death_csv_file)
+        df_deaths = data_loader.load_csv_as_df(parsed_death_csv_file, False)
 
         prep_prog_bar.write("Adding 'dies within x seconds' labels for a " +
                             str(time_window_to_next_death) +
                             " second time window to dataframe...")
 
-        df = preprocess.add_die_within_sec_labels(df,df_deaths)
+        df = preprocess.add_die_within_sec_labels(df, df_deaths)
         df = preprocess.undersample_pure_not_die_ticks(
             df, removal_frac=0.1)  #NOTE: Doesnt work yet
 
@@ -164,10 +173,7 @@ def preprocess_data(parsed_csv_files_list: List[Path],
         prep_prog_bar.write("Adding one hot encoding for player aim on enemy")
         df = preprocess.add_one_hot_encoding_angles(df)
 
-        target_path_new = str(processed_files_path /
-                              f'{parsed_csv_file.stem}.h5')
-
-        print(target_path_new)
+        prep_prog_bar.write(target_path_new)
 
         try:
             #Save to hdf and if specified, remove old csv file
@@ -271,7 +277,8 @@ def prepare_dataset():
             data_loader.get_files_in_directory(
                 Path(config["paths"]["parsed_files_path"]), ".csv")))
     preprocess_data(parsed_csv_files_list,
-                    Path(config["paths"]["processed_files_path"]))
+                    Path(config["paths"]["processed_files_path"]),
+                    override=args.override)
 
     all_progress_bar.update()
     all_progress_bar.set_postfix({"Status": "Randomization"})

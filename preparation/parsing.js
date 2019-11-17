@@ -125,7 +125,7 @@ class DemoFileParser {
 
             //const headshotText = e.headshot ? " HS" : "";
 
-            deathEventInfo = {
+            const deathEventInfo = {
                 "time": this.demoFile.currentTime,
                 "tick": this.demoFile.currentTick,
                 "attackerIndex": attackerIndex,
@@ -134,7 +134,8 @@ class DemoFileParser {
                 "victimName": victimName,
             }
 
-            if (Object.values(deathEventInfo).includes("unnamed") || Object.values(deathEventInfo).includes(-1)) {
+            if (Object.values(deathEventInfo).includes("unnamed") || Object.values(deathEventInfo).includes(-1) || Object.values(deathEventInfo).includes(null) ||
+                Object.values(deathEventInfo).includes(NaN)) {
                 console.log("Discard death event tick!")
             }
             else {
@@ -297,7 +298,12 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     get_all_players_in_order() {
-        return [].concat(this.teams[0].members.sort((a, b) => a.index - b.index), this.teams[1].members.sort((a, b) => a.index - b.index));
+        if (this.players_in_order == null) {
+
+            this.players_in_order = [].concat(this.teams[0].members.sort((a, b) => a.index - b.index), this.teams[1].members.sort((a, b) => a.index - b.index));
+        }
+
+        return this.players_in_order
     }
 
 
@@ -347,7 +353,7 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     getAllPlayerInfoForTick() {
-        const wrongA = this.set_teams_in_order(true);
+        const wrongA = this.set_teams_in_order(false);
         const allPlayers = this.get_all_players_in_order();
 
         const currentTick = this.demoFile.currentTick;
@@ -380,7 +386,7 @@ class DemoFileParser {
             const featureNameStart = `f_${playerCounter}`;
 
             const playerID = player ? player.userId : "-1";
-            const playerName = player ? player.name : "playerMissing";
+            //const playerName = player ? player.name : "playerMissing";
 
             const position = player.position;
             //const p5originPos = p5.createVector(playerPos.x, playerPos.y, playerPos.z);
@@ -411,7 +417,7 @@ class DemoFileParser {
             tickInfo[featureNameStart + "_isScoped"] = player.isScoped ? 1 : 0;
             tickInfo[featureNameStart + "_isDefusing"] = player.isDefusing ? 1 : 0;
 
-            // TODO: String bad! Find a solution. Must be one hot encoded?
+            // TODO: String bad! Find a solution for preprocessing. Must be one hot encoded?
             tickInfo[featureNameStart + "_placeName"] = player.placeName;
 
             /**
@@ -484,9 +490,8 @@ class DemoFileParser {
 
         //Check if anything went wrong
         if (
-            Object.values(tickInfo).includes(null) ||
-            Object.values(tickInfo).includes(NaN)
-        ) {
+            Object.values(tickInfo).includes("unnamed") || Object.values(tickInfo).includes(-1) || Object.values(tickInfo).includes(null) ||
+            Object.values(tickInfo).includes(NaN)) {
             if (this.verbosity > 0)
                 console.warn(
                     "|| Tick: " +
@@ -654,12 +659,12 @@ class DemoFileParser {
 let demoFilePath, parsedFilePath;
 let verbosity = 4;
 
-let debugDemoFilePath = '../csgo_dataset/demo_files/vitality-vs-liquid-m2-dust2.dem'; // "../../csgo_dataset/demo_files/renegades-vs-fnatic-m3-inferno.dem"
+let debugDemoFilePath = "/home/hueter/csgo_dataset/demo_files_test/sprout-vs-ex-epsilon-m2-inferno.dem"
 
 //Its weird, but it works
 if (process.argv[2] == "true") {
     demoFilePath = debugDemoFilePath;
-    parsedFilePath = "../csgo_dataset/";
+    parsedFilePath = "../../csgo_dataset/";
 } else {
     //TODO different ways to set paths
     demoFilePath = process.argv[2];

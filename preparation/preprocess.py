@@ -86,11 +86,11 @@ class Sphere:
         return pred
 
 
-def add_die_within_sec_labels(df: pd.DataFrame, df_deaths: pd.DataFrame,
+def add_die_within_sec_labels(df: pd.DataFrame,
+                              df_deaths: pd.DataFrame,
                               time_window_to_next_death: int = 5,
                               demo_tickrate: int = 64,
-                              parsing_tickrate: int = 8
-                              ) -> pd.DataFrame:
+                              parsing_tickrate: int = 8) -> pd.DataFrame:
     '''
     Adds labels that contain time to next death within x next seconds to the dataframe
 
@@ -98,7 +98,6 @@ def add_die_within_sec_labels(df: pd.DataFrame, df_deaths: pd.DataFrame,
 
     IMPORTANT: Data must not be shuffled. This function relies on the ticks being in the correct order!
     '''
-
     '''
     # Max time at which to label if someone is going to die in the next x seconds
     max_ticks_in_future = demo_tickrate * time_window_to_next_death
@@ -112,37 +111,54 @@ def add_die_within_sec_labels(df: pd.DataFrame, df_deaths: pd.DataFrame,
     label_deathState_column_lists = [[] for i in range(10)]
     '''
 
-    die_within_seconds_column_names = data_loader.get_die_within_seconds_column_names(10, time_window_to_next_death)
+    die_within_seconds_column_names = data_loader.get_die_within_seconds_column_names(
+        10, time_window_to_next_death)
 
-    new_df = pd.DataFrame(0.0,columns=die_within_seconds_column_names,
-                                     index=df.index,
-                                     dtype=np.float32) #Create new dataframe filled with zeros
-    
+    new_df = pd.DataFrame(
+        0.0,
+        columns=die_within_seconds_column_names,
+        index=df.index,
+        dtype=np.float32)  #Create new dataframe filled with zeros
+
     # Go through all deaths recorded in match and set labels accordingly
-    for death_index in df_deaths.index:
-        death_index_in_df = df.index.asof(death_index)  #Gets closest previous index to death_index in match df
-        
-        round_of_kill = df_deaths.at[death_index, 'Round']
+    for iloc_index in range(df_deaths.index.size):
+        #death_index_in_df = df.index.asof(death_index)  #Gets closest previous index to death_index in match df
 
-        time_of_death = df_deaths.at[death_index, 'Time']
-        max_time_in_past = time_of_death - float(time_window_to_next_death) #Get first time in past where labelling can be applied
+        try:
+            round_of_kill = df_deaths['Round'].iloc[iloc_index]
 
-        victim_id = df_deaths.at[death_index, 'victimIndex']  # Who died
-        attacker_id = df_deaths.at[death_index, 'attackerIndex']  # Who is the killer
+            time_of_death = df_deaths['Time'].iloc[iloc_index]
+            max_time_in_past = time_of_death - float(
+                time_window_to_next_death
+            )  #Get first time in past where labelling can be applied
 
-        if victim_id == attacker_id:
-            continue #Suicides should not be included
+            victim_id = df_deaths['VictimIndex'].iloc[iloc_index]  # Who died
+            attacker_id = df_deaths['AttackerIndex'].iloc[
+                iloc_index]  # Who is the killer
 
-        for match_ticks in df.loc[max_time_in_past:time_of_death, 'Time'].index:  #All ticks within time window of death
-            if df.at[match_ticks, 'Round'] != round_of_kill: #Cap at border to last round
-                continue
-            new_df.at[match_ticks, die_within_seconds_column_names[victim_id]] = 1.0  # Will die within next x seconds
+            if victim_id == attacker_id:
+                continue  #Suicides should not be included
+
+            victim_column_name = die_within_seconds_column_names[victim_id]
+            bool_where_time_window = df['Time'].between(
+                max_time_in_past, time_of_death, inclusive=True
+            )  #Get a series of bool indicating where the time window lies within the df
+
+            for match_ticks in df[
+                    bool_where_time_window].index:  #All ticks within time window of death
+                if df.at[match_ticks,
+                         'Round'] != round_of_kill:  #Cap if max_time_in_past reaches into past round (which shouldn't be possible with 5 seconds)
+                    continue
+                new_df.at[
+                    match_ticks,
+                    victim_column_name] = 1.0  # Will die within next x seconds
+        except:
+            pass
 
     df = pd.concat([df, new_df], sort=True, axis=1).astype(np.float32)
     return df
-    
-    #NOTE: Legacy code
 
+    #NOTE: Legacy code
     '''
     # Go through each player and set die_within labels for entire column
     for player_i, player_isAlive_column_name in enumerate(isAlive_colum_names):
@@ -192,7 +208,6 @@ def add_die_within_sec_labels(df: pd.DataFrame, df_deaths: pd.DataFrame,
     return df
     '''
 
-    
 
 def add_sec_to_death_labels(df: pd.DataFrame, sec_to_death_list: List[int]):
     '''
@@ -201,8 +216,6 @@ def add_sec_to_death_labels(df: pd.DataFrame, sec_to_death_list: List[int]):
     '''
 
     sec_to_death_label_np = np.zeros(df.shape)
-
-    
 
     return df
 
@@ -302,6 +315,7 @@ def add_one_hot_encoding_angles(df: pd.DataFrame, discrete=True):
         index=df.index,
         dtype=np.float32)
 
+    #TODO: Optimize this timesink! Maybe only change positions of spheres instead of generating them?
     #Iterate through rows
     for index_label in df.index:
 
@@ -466,9 +480,12 @@ PLAYER_SPHERE_RADIUS = PLAYER_HEIGHT * 2
 
 if __name__ == "__main__":
     #sample = data_loader.load_sample_csv_as_df()
+    parsed_csv_file = Path(
+        '/home/hueter/csgo_dataset/parsed_files_test/sprout-vs-ex-epsilon-m2-inferno.csv'
+    )
+    parsed_death_csv_file = parsed_csv_file.with_name(parsed_csv_file.stem +
+                                                      "_deaths.csv")
 
-    #l = all_player_eyeAngles_to_direction_vec3(sample, sample.index[0])
-    cs = data_loader.load_csv_as_df(
-        Path('../../csgo_dataset/parsed_files/renegades-vs-g2-m1-inferno.csv'))
-    d = add_one_hot_encoding_angles(cs.loc[10330 - 50:10330 + 50])
-    print(d)
+    df = data_loader.load_csv_as_df(parsed_csv_file)
+    df_deaths = data_loader.load_csv_as_df(parsed_death_csv_file, False)
+    add_die_within_sec_labels(df, df_deaths)
