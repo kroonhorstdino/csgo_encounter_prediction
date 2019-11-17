@@ -1,0 +1,1 @@
+{"topography": {"shared_layers": [256, 128, 64], "dense_layers": [2000, 1000, 500, 250, 100, 50]}, "training": {"feature_set": "training_all", "label_set": "discrete_die_within_5_seconds", "batch_size": 128, "num_epoch": 120, "lr": 0.002, "checkpoint_epoch": 100, "map": "inferno"}}
