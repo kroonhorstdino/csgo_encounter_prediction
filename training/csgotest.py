@@ -114,6 +114,7 @@ class CounterStrikeDataset(Dataset):
                                           True,
                                           key='player_info',
                                           column_names=self.all_column_names)
+        #Load chunk with columns names specified by feature and label set and drop ticks
         # .iloc[start_index:end_index] A batch is going to be loaded from this chunk >batches_per_chunk< times anyways. If random, may be not so bad NOTE: FIXME:
 
         player_features, classification_labels = data_loader.get_minibatch_balanced_player(
