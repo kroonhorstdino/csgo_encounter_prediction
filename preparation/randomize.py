@@ -15,7 +15,7 @@ import data_loader
 
 
 def randomize_processed_file(file_path: Path):
-    df = data_loader.load_h5_as_df(file_path, True, 'player_info')
+    df = data_loader.load_feather_as_df(file_path, True, 'player_info')
 
     return randomize_processed_dataframe(df)
 
@@ -32,7 +32,7 @@ def randomize_processed_files(files_list: List[Path],
                               chunk_row_size: int = 4096,
                               worker: int = 0):
     '''
-    Combines multiple .h5 together and shuffles them. After that they are split into equal sized chunks and saved. 
+    Combines multiple .feather together and shuffles them. After that they are split into equal sized chunks and saved. 
     Leftover is also saved as a leftover file
     '''
 
@@ -43,16 +43,16 @@ def randomize_processed_files(files_list: List[Path],
         try:
             leftover_file = data_loader.get_files_in_directory(
                 randomized_files_path, '.leftover')[0]
-            leftover_df = data_loader.load_h5_as_df(leftover_file, True)
+            leftover_df = data_loader.load_feather_as_df(leftover_file, True)
         except:
             pass
 
     # Ticks are dropped, because they are not needed anymore
-    df = data_loader.load_h5_as_df(files_list[0], True)
+    df = data_loader.load_feather_as_df(files_list[0], True)
 
     if len(files_list) > 1:
         for h5_file in files_list[1:]:
-            new_df = data_loader.load_h5_as_df(h5_file, True)
+            new_df = data_loader.load_feather_as_df(h5_file, True)
             df = pd.concat([df, new_df])
 
     df = df.sample(frac=1)
@@ -65,16 +65,14 @@ def randomize_processed_files(files_list: List[Path],
         end_index = min(df_length, start_index + chunk_row_size)
         last_chunk_df = df.iloc[start_index:end_index]
 
-        normal_chunk_file_name = f"data_chunk_{worker}_{counter}.h5"
+        normal_chunk_file_name = f"data_chunk_{worker}_{counter}.feather"
 
         if (len(last_chunk_df) >= chunk_row_size):
             '''
             If enough data for a full chunk
             '''
-            last_chunk_df.to_hdf(str(randomized_files_path /
-                                     normal_chunk_file_name),
-                                 key='player_info',
-                                 mode='w')
+            last_chunk_df.to_feather(
+                (str(randomized_files_path / normal_chunk_file_name)))
         else:
             if (leftover_df is not None):
                 last_chunk_df = pd.concat([leftover_df, last_chunk_df])
@@ -82,22 +80,17 @@ def randomize_processed_files(files_list: List[Path],
             if (len(last_chunk_df) > chunk_row_size):
                 # Save new chunk as normal chunk, cutoff at length of normal chunk. Rest is leftover
                 (last_chunk_df.iloc[:min(len(last_chunk_df), chunk_row_size)]
-                 ).to_hdf(str(randomized_files_path / normal_chunk_file_name),
-                          key='player_info',
-                          mode='w')
+                 ).to_feather(
+                     str(randomized_files_path / normal_chunk_file_name))
                 # Save rest as leftover
-                (last_chunk_df.iloc[chunk_row_size:]).to_hdf(str(
-                    randomized_files_path / f"leftover.h5.leftover"),
-                                                             key='player_info',
-                                                             mode='w')
+                (last_chunk_df.iloc[chunk_row_size:]).to_feather(
+                    str(randomized_files_path / f"leftover.feather.leftover"))
             else:
                 # Save last chunk as leftover
-                last_chunk_df.to_hdf(str(randomized_files_path /
-                                         f"leftover.h5.leftover"),
-                                     key='player_info',
-                                     mode='w')
+                last_chunk_df.to_feather(
+                    str(randomized_files_path / f"leftover.feather.leftover"))
 
 
 if __name__ == "__main__":
-    #randomize_processed_files(["parsed_files/vitality-vs-sprout-m1-overpass.h5"],Path("./randomized_files/"))
+    #randomize_processed_files(["parsed_files/vitality-vs-sprout-m1-overpass.feather"],Path("./randomized_files/"))
     pass

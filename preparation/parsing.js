@@ -62,8 +62,6 @@ class DemoFileParser {
 
         this.createCsvWriter = require("csv-writer").createObjectCsvWriter;
 
-        this.playersInTeams = [];
-
         this.deathDataBuffer = [];
         this.playerInfoBuffer = [];
 
@@ -110,31 +108,9 @@ class DemoFileParser {
         });
 
         this.demoFile.gameEvents.on("player_death", e => {
-            this.set_teams_in_order(false);
 
-            const victim = this.demoFile.entities.getByUserId(e.userid);
-            const victimIndex = this.get_all_players_in_order().findIndex((player => player == victim));
-            const victimName = victim ? victim.name : "unnamed";
-
-            // Attacker may have disconnected so be aware.
-            // e.g. attacker could have thrown a grenade, disconnected, then that grenade
-            // killed another player.
-            const attacker = this.demoFile.entities.getByUserId(e.attacker);
-            const attackerIndex = this.get_all_players_in_order().findIndex((player => player == attacker));
-            const attackerName = attacker ? attacker.name : "unnamed";
-
-            //const headshotText = e.headshot ? " HS" : "";
-
-            const deathEventInfo = {
-                "time": this.demoFile.currentTime,
-                "tick": this.demoFile.currentTick,
-                "attackerIndex": attackerIndex,
-                "attackerName": attackerName,
-                "victimIndex": victimIndex,
-                "victimName": victimName,
-            }
-
-            if (Object.values(deathEventInfo).includes("unnamed") || Object.values(deathEventInfo).includes(-1) || Object.values(deathEventInfo).includes(null) ||
+            const deathEventInfo = this.getDeathInfo(e)
+            if (Object.values(deathEventInfo).includes("unnamed") || deathEventInfo["victimIndex"] == -1 || Object.values(deathEventInfo).includes(null) ||
                 Object.values(deathEventInfo).includes(NaN)) {
                 console.log("Discard death event tick!")
             }
@@ -179,6 +155,36 @@ class DemoFileParser {
 
         if (this.verbosity > 1)
             console.log("$$$$$$ Succesfully subscribed to all events!");
+    }
+
+    getDeathInfo(e) {
+        this.set_teams_in_order(true)
+
+        const players = this.get_all_players_in_order(true)//.map((player => player.userId));
+
+        const victim = this.demoFile.entities.getByUserId(e.userid);
+        const victimIndex = victim ? players.findIndex((player => player.userId == victim.userId)) : -1;
+        const victimName = victim ? victim.name : "unnamed";
+
+        // Attacker may have disconnected so be aware.
+        // e.g. attacker could have thrown a grenade, disconnected, then that grenade
+        // killed another player.
+        const attacker = this.demoFile.entities.getByUserId(e.attacker);
+        const attackerIndex = attacker ? players.findIndex((player => player.userId == attacker.userId)) : -1;
+        const attackerName = attacker ? attacker.name : "unnamed";
+
+        //const headshotText = e.headshot ? " HS" : "";
+
+        const deathEventInfo = {
+            "time": this.demoFile.currentTime,
+            "tick": this.demoFile.currentTick,
+            "attackerIndex": attackerIndex,
+            "attackerName": attackerName,
+            "victimIndex": victimIndex,
+            "victimName": victimName,
+        }
+
+        return deathEventInfo
     }
 
     parseDemoFile() {
@@ -280,15 +286,21 @@ class DemoFileParser {
         //Counter-Terrorist
         let ct = this.demoFile.teams[3];
 
-        //If anything is wrong with the teams
-        if (t == undefined || ct == undefined || t.members < 5 || ct.members < 5) return true;
+        let hasReset = false;
 
-        if (this.teams == null || reset) {
-            // Sort teams by handle to ensure a constant order of teams and players
-            let allTeams = [].concat(t, ct).sort((a, b) => a.handle - b.handle)
-            this.teams = allTeams;
+        try {
+            if (this.teams == null || reset || this.teams == undefined) {
+                // Sort teams by handle to ensure a constant order of teams and players
+                let allTeams = [].concat(t, ct).sort((a, b) => a.clanName.localeCompare(b.clanName));
+                this.teams = allTeams;
+                if (allTeams != this.teams) hasReset = true;
+                //console.log(allTeams[0].clanName)
+            }
+        } catch (e) {
+            // DO nothing
         }
-        return false;
+
+        return hasReset;
     }
 
     /**
@@ -297,10 +309,10 @@ class DemoFileParser {
      * @returns
      * @memberof DemoFileParser
      */
-    get_all_players_in_order() {
-        if (this.players_in_order == null) {
+    get_all_players_in_order(reset) {
+        if (this.players_in_order == null || reset) {
 
-            this.players_in_order = [].concat(this.teams[0].members.sort((a, b) => a.index - b.index), this.teams[1].members.sort((a, b) => a.index - b.index));
+            this.players_in_order = [].concat(this.teams[0].members.sort((a, b) => a.name.localeCompare(b.name)), this.teams[1].members.sort((a, b) => a.name.localeCompare(b.name)));
         }
 
         return this.players_in_order
@@ -353,12 +365,12 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     getAllPlayerInfoForTick() {
-        const wrongA = this.set_teams_in_order(false);
-        const allPlayers = this.get_all_players_in_order();
+        const hasReset = this.set_teams_in_order(true);
+        const allPlayers = this.get_all_players_in_order(true);
 
         const currentTick = this.demoFile.currentTick;
 
-        if (allPlayers.length != 10 || allPlayers.includes(null) || wrongA) {
+        if (allPlayers.length != 10 || allPlayers.includes(null) || allPlayers == undefined) {
             if (this.is_show_print_message())
                 console.log(
                     "|| Tick: " +
@@ -659,7 +671,7 @@ class DemoFileParser {
 let demoFilePath, parsedFilePath;
 let verbosity = 4;
 
-let debugDemoFilePath = "/home/hueter/csgo_dataset/demo_files_test/sprout-vs-ex-epsilon-m2-inferno.dem"
+let debugDemoFilePath = "/home/hueter/csgo_dataset/demo_files_57004/pact-vs-movistar-riders-vertigo.dem"
 
 //Its weird, but it works
 if (process.argv[2] == "true") {

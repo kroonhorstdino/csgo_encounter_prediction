@@ -266,26 +266,25 @@ def load_csv_as_df(filePath: Path, cast_to_float: bool = True) -> pd.DataFrame:
     return df
 
 
-def load_h5_as_df(filePath: Path,
-                  drop_ticks: bool,
-                  key: str = 'player_info',
-                  column_names: List[str] = None) -> pd.DataFrame:
+def load_feather_as_df(filePath: Path,
+                       drop_ticks: bool,
+                       key: str = 'player_info',
+                       column_names: List[str] = None) -> pd.DataFrame:
     '''
-        Loads a dataframe from .h5 file with given key \n
+        Loads a dataframe from .feather file with given key \n
         'drop_ticks' drops 'Tick' as index and removes that column from df reverting back to integer based index
     '''
 
     # DEBUG: print(filePath)
+    df: pd.DataFrame
+    if column_names is None:
+        df = pd.read_feather(filePath).astype(np.float32)
+    else:
+        df = pd.read_feather(filePath, columns=column_names).astype(np.float32)
 
-    df = pd.read_hdf(filePath, key=key).astype(np.float32)
-
-    if column_names is not None:
-        df = df[column_names]
-
-    if (drop_ticks):
-        #print(df.index.name)
-        # Reset index and drop it
-        df.reset_index(drop=True, inplace=True)
+    if (not drop_ticks):
+        #Set the ticks as index
+        df.set_index(['Tick'], inplace=True)
 
     df.fillna(0.0, inplace=True)
 
@@ -319,11 +318,11 @@ def load_sample_h5_as_df(drop_ticks: bool, key: str = None):
     '''
         Get a sample h5 file as dataframe from training data
     '''
-    return load_h5_as_df(random.choice(
+    return load_feather_as_df(random.choice(
         get_files_in_directory(DATASET_CONFIG["paths"]["training_files_path"],
                                '.csv')),
-                         drop_ticks,
-                         key=key)
+                              drop_ticks,
+                              key=key)
 
 
 def load_model_to_test(epoch_i: int = 100,

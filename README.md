@@ -24,7 +24,7 @@ Inside the `prep_config.json` file you can find multiple variables related to pr
 
 - `demo_files_path`: Location of downloaded and unpacked .dem files of CS:GO matches
 - `parsed_files_path`: Location of parsed .dem files stored as .csv
-- `processed_files_path`: Location of .h5 files that have undergone preprocessing and whose data is ready for training
+- `processed_files_path`: Location of .feather files that have undergone preprocessing and whose data is ready for training
 - `dataset_files_path`: Location of randomized chunks of data that are actually used for training
 
 All paths are relative to the root directory. All paths may point to the same location, but for visibility purposes different paths are recommended.
@@ -46,8 +46,8 @@ Verbosity of logging is specified by the option `-v` in stages up to `-vvvv`
 For separate execution of the steps use the argument option **`-mode`** of `prepration/prepare_dataset.py`:
 
 - `parse`: Run to parse all .dem files specified in config. Output is **.csv** files of matches
-- `preprocess`: Add and remove all neccesary features of data for training. Output is **.h5** files of matches
-- `randomize`: Randomize all matches and generate chunks as **.h5** files. These can be used for training.
+- `preprocess`: Add and remove all neccesary features of data for training. Output is **.feather** files of matches
+- `randomize`: Randomize all matches and generate chunks as **.feather** files. These can be used for training.
 
 Example:
 

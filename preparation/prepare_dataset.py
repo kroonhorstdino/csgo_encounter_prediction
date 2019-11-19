@@ -32,8 +32,9 @@ def get_dataset_partitions(files_path: Path, split_percentages=[0.8, 0.1,
         )
         split_percentages = [0.5, 0.25, 0.25]
 
-    # Shuffle list of all .h5 files in the raw data directory
-    raw_data_file_list = data_loader.get_files_in_directory(files_path, '.h5')
+    # Shuffle list of all .feather files in the raw data directory
+    raw_data_file_list = data_loader.get_files_in_directory(
+        files_path, '.feather')
     random.shuffle(raw_data_file_list)
 
     num_train_files = int(len(raw_data_file_list) * split_percentages[0])
@@ -128,7 +129,7 @@ def preprocess_data(parsed_csv_files_list: List[Path],
                     time_window_to_next_death: int = 5,
                     override=False):
     '''
-        Processes data from matches in .csv files to .h5 files that contain all nessecary features for training
+        Processes data from matches in .csv files to .feather files that contain all nessecary features for training
         Uses parameters in config #WIP
     '''
 
@@ -150,7 +151,7 @@ def preprocess_data(parsed_csv_files_list: List[Path],
             parsed_csv_file.stem + "_deaths.csv")
 
         target_path_new = str(processed_files_path /
-                              f'{parsed_csv_file.stem}.h5')
+                              f'{parsed_csv_file.stem}.feather')
 
         if (override == False and Path.is_file(Path(target_path_new))):
             prep_prog_bar.update()
@@ -173,18 +174,19 @@ def preprocess_data(parsed_csv_files_list: List[Path],
         prep_prog_bar.write("Adding one hot encoding for player aim on enemy")
         df = preprocess.add_one_hot_encoding_angles(df)
 
-        prep_prog_bar.write(target_path_new)
+        str_target_path = str(Path(target_path_new).resolve())
+        prep_prog_bar.write(str_target_path)
 
         try:
-            #Save to hdf and if specified, remove old csv file
-            df.to_hdf(target_path_new, key='player_info', mode='w')
+            df.reset_index(inplace=True)
+            df.to_feather(str_target_path)
         except:
-            print("Couldn't save to dataframe... ")
+            prep_prog_bar.write(">>>>>>>>>>> Couldn't save to as file!")
             raise
-        else:
-            if (delete_old_csv): os.remove(str(parsed_csv_file))
         finally:
             prep_prog_bar.update()
+
+        df = None
 
     prep_prog_bar.write("Preprocessing finished")
     prep_prog_bar.set_description("Preprocessing finished")
@@ -285,7 +287,7 @@ def prepare_dataset():
 
     # RANDOMIZED DATA
     processed_h5_files_list = data_loader.get_files_in_directory(
-        Path(config["paths"]["processed_files_path"]), ".h5")
+        Path(config["paths"]["processed_files_path"]), ".feather")
     randomize_data(processed_h5_files_list,
                    Path(config["paths"]["training_files_path"]))
 
@@ -314,7 +316,7 @@ if __name__ == '__main__':
                     choices=('all', 'parse', 'preprocess', 'randomize'),
                     type=str,
                     help="Mode of preparation")
-    # Option to delete old files that are generated in the in-between steps of preparation (.csv, .h5)
+    # Option to delete old files that are generated in the in-between steps of preparation (.csv, .feather)
     ap.add_argument(
         "-override",
         required=False,
@@ -360,10 +362,11 @@ if __name__ == '__main__':
                 filter(lambda name: "death" not in name.name,
                        parsed_csv_files_list))
             preprocess_data(parsed_csv_files_list,
-                            Path(config["paths"]["processed_files_path"]))
+                            Path(config["paths"]["processed_files_path"]),
+                            override=args.override)
         elif (args.mode == 'randomize'):
             processed_h5_files_list = data_loader.get_files_in_directory(
-                Path(config["paths"]["processed_files_path"]), ".h5")
+                Path(config["paths"]["processed_files_path"]), ".feather")
             randomize_data(processed_h5_files_list,
                            Path(config["paths"]["training_files_path"]))
 

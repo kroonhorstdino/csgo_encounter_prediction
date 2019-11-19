@@ -479,6 +479,7 @@ PLAYER_HEIGHT = 72  # Measured in source units
 PLAYER_SPHERE_RADIUS = PLAYER_HEIGHT * 2
 
 if __name__ == "__main__":
+    pass
     #sample = data_loader.load_sample_csv_as_df()
     parsed_csv_file = Path(
         '/home/hueter/csgo_dataset/parsed_files_test/sprout-vs-ex-epsilon-m2-inferno.csv'

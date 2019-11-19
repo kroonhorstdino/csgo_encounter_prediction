@@ -25,7 +25,9 @@ var/
 
 .eslintrc.json
 
-*.h5
-*.h5.leftover
+*.feather
+*.feather.leftover
+*.feather
+*.feather.leftover
 *.csv
 *.npy

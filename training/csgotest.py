@@ -86,7 +86,7 @@ class CounterStrikeDataset(Dataset):
             "death_time_window"]
 
         # Small sample of dataset
-        dataset_sample = data_loader.load_h5_as_df(
+        dataset_sample = data_loader.load_feather_as_df(
             self.dataset_files[0],
             False,
             key='player_info',
@@ -110,7 +110,7 @@ class CounterStrikeDataset(Dataset):
         chunk_file = self.dataset_files[self.batch_index_to_chunk_index(index)]
         #start_index, end_index = self.get_indicies_in_chunk(index) #NOTE: If you want a specific area of chunk. Only without balancing during loading!
 
-        chunk = data_loader.load_h5_as_df(chunk_file,
+        chunk = data_loader.load_feather_as_df(chunk_file,
                                           True,
                                           key='player_info',
                                           column_names=self.all_column_names)
@@ -608,6 +608,7 @@ def train_csgo(dataset_config_path: Path,
 
         #CLI
         train_prog_bar.update()
+        writer.flush()  #Don't clog the memory with files
 
     writer.close()
 

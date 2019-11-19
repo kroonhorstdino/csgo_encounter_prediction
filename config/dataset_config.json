@@ -1,6 +1,6 @@
 {
   "paths": {
-    "demo_files_path": "../../csgo_dataset/demo_files/",
+    "demo_files_path": "../../csgo_dataset/demo_files_57004/",
     "parsed_files_path": "../../csgo_dataset/parsed_files/",
     "processed_files_path": "../../csgo_dataset/processed_files/",
     "training_files_path": "../../csgo_dataset/training_data/",

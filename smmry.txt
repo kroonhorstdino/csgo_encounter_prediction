@@ -1,0 +1,9 @@
+Introduction
+    CS:GO popular esports, other titles
+    What is CS:GO, game mode how to win
+    How to play
+    Meta game
+    Goal of thesis:
+        Replicate dota 2 paper
+        Transfer approach to CSGO
+    
