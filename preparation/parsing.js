@@ -310,9 +310,13 @@ class DemoFileParser {
      * @memberof DemoFileParser
      */
     get_all_players_in_order(reset) {
-        if (this.players_in_order == null || reset) {
+        try {
+            if (this.players_in_order == null || reset) {
 
-            this.players_in_order = [].concat(this.teams[0].members.sort((a, b) => a.name.localeCompare(b.name)), this.teams[1].members.sort((a, b) => a.name.localeCompare(b.name)));
+                this.players_in_order = [].concat(this.teams[0].members.sort((a, b) => a.name.localeCompare(b.name)), this.teams[1].members.sort((a, b) => a.name.localeCompare(b.name)));
+            }
+        } catch (e) {
+            console.log("No teams stored!")
         }
 
         return this.players_in_order
