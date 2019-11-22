@@ -413,10 +413,6 @@ def train_csgo(dataset_config_path: Path,
 
                 sys.stdout.flush()
 
-                writer.add_pr_curve("Training/Precision Recall Curve",y,output)
-
-                writer.add_scalar("Training/Average Precision Score", average_precision_score(y,output))
-
             epoch_prog_bar.update()
         '''
             #####
@@ -505,7 +501,7 @@ def train_csgo(dataset_config_path: Path,
                     epoch_accuracy_all_player.append(accuracy_vec.mean())
 
                     epoch_all_pred.extend(output_np.reshape(-1))
-                    epoch_all_y.extend(y.cpu().numpy().reshape(-1))
+                    epoch_all_y.extend(y.cpu().detach().numpy().reshape(-1))
 
                     validation_prog_bar.update()
 
@@ -541,6 +537,9 @@ def train_csgo(dataset_config_path: Path,
                     "Accuracy for Survival (not die)":
                     np.array(epoch_accuracy_not_die).mean()
                 }, epoch_i)'''
+
+            writer.add_pr_curve("Validation/Precision Recall Curve",epoch_all_y,epoch_all_pred,epoch_i)
+            writer.add_scalars("Validation/Average Precision Score", average_precision_score(epoch_all_y, epoch_all_pred), epoch_i)
 
             validation_roc_auc_score = roc_auc_score(epoch_all_y,
                                                      epoch_all_pred)
