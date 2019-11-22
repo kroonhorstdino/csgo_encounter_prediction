@@ -14,7 +14,7 @@
         ]
     },
     "training": {
-        "feature_set": "training_all",
+        "feature_set": "training_no_movement",
         "label_set": "discrete_die_within_5_seconds",
         "batch_size": 256,
         "num_epoch": 100,

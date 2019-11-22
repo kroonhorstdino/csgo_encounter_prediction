@@ -56,6 +56,7 @@ def randomize_processed_files(files_list: List[Path],
             df = pd.concat([df, new_df])
 
     df = df.sample(frac=1)
+    #df.reset_index(drop=True, inplace=True)
 
     last_chunk_df: pd.DataFrame
     df_length = len(df)
@@ -64,6 +65,8 @@ def randomize_processed_files(files_list: List[Path],
     for counter, start_index in enumerate(range(0, df_length, chunk_row_size)):
         end_index = min(df_length, start_index + chunk_row_size)
         last_chunk_df = df.iloc[start_index:end_index]
+
+        last_chunk_df.reset_index(drop=True, inplace=True)
 
         normal_chunk_file_name = f"data_chunk_{worker}_{counter}.feather"
 
@@ -76,6 +79,7 @@ def randomize_processed_files(files_list: List[Path],
         else:
             if (leftover_df is not None):
                 last_chunk_df = pd.concat([leftover_df, last_chunk_df])
+                last_chunk_df.reset_index(drop=True, inplace=True)
 
             if (len(last_chunk_df) > chunk_row_size):
                 # Save new chunk as normal chunk, cutoff at length of normal chunk. Rest is leftover
@@ -83,7 +87,7 @@ def randomize_processed_files(files_list: List[Path],
                  ).to_feather(
                      str(randomized_files_path / normal_chunk_file_name))
                 # Save rest as leftover
-                (last_chunk_df.iloc[chunk_row_size:]).to_feather(
+                (last_chunk_df.iloc[chunk_row_size:].reset_index(drop=True)).to_feather(
                     str(randomized_files_path / f"leftover.feather.leftover"))
             else:
                 # Save last chunk as leftover

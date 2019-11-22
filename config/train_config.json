@@ -1,6 +1,7 @@
 {
 	"topography": {
 		"shared_layers": [
+                        512,
 			256,
 			128,
 			64
@@ -19,7 +20,7 @@
 		"label_set": "discrete_die_within_5_seconds",
 		"batch_size": 128,
 		"num_epoch": 100,
-		"lr": 0.001,
+		"lr": 0.005,
 		"checkpoint_epoch": 100,
 		"map": "inferno"
 	}

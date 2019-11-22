@@ -546,6 +546,9 @@
 		"vertigo",
 		"train",
 		"overpass",
-		"inferno"
+		"inferno",
+                "cache",
+                "cobbelstone",
+                "cbble"
 	]
 }

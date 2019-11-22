@@ -88,7 +88,7 @@ class CounterStrikeDataset(Dataset):
         # Small sample of dataset
         dataset_sample = data_loader.load_feather_as_df(
             self.dataset_files[0],
-            False,
+            True,
             key='player_info',
             column_names=self.all_column_names)
         '''

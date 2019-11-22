@@ -157,13 +157,16 @@ def preprocess_data(parsed_csv_files_list: List[Path],
             prep_prog_bar.update()
             continue  #Skip this file if we don't want to override again
 
+        df: pd.DataFrame
+        df_deaths: pd.DataFrame
+
         try:
             df = data_loader.load_csv_as_df(parsed_csv_file)
+            df_deaths = data_loader.load_csv_as_df(parsed_death_csv_file,
+                                                   False)
         except:
             print("FILE HAD NO COLUMNS!")
             continue
-
-        df_deaths = data_loader.load_csv_as_df(parsed_death_csv_file, False)
 
         prep_prog_bar.write("Adding 'dies within x seconds' labels for a " +
                             str(time_window_to_next_death) +
@@ -199,7 +202,7 @@ def preprocess_data(parsed_csv_files_list: List[Path],
 
 def randomize_data(processed_h5_files_list: List[Path],
                    randomized_files_path: Path,
-                   files_per_worker: int = 5,
+                   files_per_worker: int = 16,
                    delete_old_h5: bool = False):
 
     rand_progress_bar = tqdm(desc="Randomization progress:",
