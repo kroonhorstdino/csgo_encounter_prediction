@@ -19,7 +19,7 @@
         "batch_size": 256,
         "num_epoch": 100,
         "lr": 0.005,
-        "checkpoint_epoch": 100,
+        "checkpoint_epoch": 20,
         "map": "inferno"
     }
 }

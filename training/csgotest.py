@@ -331,7 +331,7 @@ def train_csgo(dataset_config_path: Path,
             batch_loss_all_player = binary_classification_loss(output, y)
 
             #batch_loss_target_player.backward()
-            batch_loss_all_player.backward()
+            batch_loss_target_player.backward()
             optimizer.step()
 
             # Log loss
@@ -412,6 +412,10 @@ def train_csgo(dataset_config_path: Path,
                 })
 
                 sys.stdout.flush()
+
+                writer.add_pr_curve("Training/Precision Recall Curve",y,output)
+
+                writer.add_scalar("Training/Average Precision Score", average_precision_score(y,output))
 
             epoch_prog_bar.update()
         '''
@@ -609,7 +613,6 @@ def train_csgo(dataset_config_path: Path,
 
         #CLI
         train_prog_bar.update()
-        writer.flush()  #Don't clog the memory with files
 
     writer.close()
 
