@@ -538,8 +538,8 @@ def train_csgo(dataset_config_path: Path,
                     np.array(epoch_accuracy_not_die).mean()
                 }, epoch_i)'''
 
-            writer.add_pr_curve("Validation/Precision Recall Curve",epoch_all_y,epoch_all_pred,epoch_i)
-            writer.add_scalars("Validation/Average Precision Score", average_precision_score(epoch_all_y, epoch_all_pred), epoch_i)
+            writer.add_pr_curve("Validation/Precision Recall Curve", np.array(epoch_all_y),np.array(epoch_all_pred),epoch_i)
+            writer.add_scalar("Validation/Average Precision Score", average_precision_score(np.array(epoch_all_y),np.array(epoch_all_pred)), epoch_i)
 
             validation_roc_auc_score = roc_auc_score(epoch_all_y,
                                                      epoch_all_pred)
