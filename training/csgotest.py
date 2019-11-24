@@ -101,8 +101,9 @@ class CounterStrikeDataset(Dataset):
             dataset_sample.columns)
 
     def __getitem__(self, index):
+        player_i = index % 10
 
-        player_i = random.randrange(0, 10)
+        #player_i = random.randrange(0, 10)
 
         #DEBUG:
         #index = 0
@@ -597,7 +598,7 @@ def train_csgo(dataset_config_path: Path,
         model_name = data_loader.MODEL_NAME_TEMPLATE.format(run_name=run_name,
                                                             epoch_i=epoch_i)
 
-        if (epoch_i % TRAIN_CONFIG["training"]["checkpoint_epoch"]
+        if ((epoch_i - 1) % TRAIN_CONFIG["training"]["checkpoint_epoch"]
             ) == 0 and epoch_i > 0:
             checkpoint = {
                 'train_config': TRAIN_CONFIG,

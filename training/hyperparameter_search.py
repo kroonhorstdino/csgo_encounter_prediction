@@ -25,37 +25,22 @@ def generate_random_config(default_config, i):
     new_conf["training"]["label_set"] = "discrete_die_within_5_seconds"
 
     new_conf["topography"] = [
-        {
-            "shared_layers": [400, 200, 120, 40],
-            "dense_layers": [300, 150, 75, 32]
-        },  # 4,4
+        # 4,4
         {
             "shared_layers": [1024, 512, 256, 128, 64],
             "dense_layers": [512, 256, 128, 64, 32]
-        },  # 5,5
-        {
-            "shared_layers": [2000, 1000, 500, 250, 125, 62],
-            "dense_layers": [512, 256, 128, 64, 32]
-        },  # 6,5
-        {
-            "shared_layers": [1024, 512, 256, 128, 64, 32],
-            "dense_layers": [300, 150, 75]
-        },  # 6,2
-        {
-            "shared_layers": [256, 128, 64],
-            "dense_layers": [1024, 512, 256, 128, 64, 32]
-        },  # 3,6
+        },
         {
             "shared_layers": [400, 200, 80],
             "dense_layers": [1000, 500, 250, 100, 50]
-        },  # 3,5
-        {"shared_layers" : [256, 128, 64, 32],"dense_layers" : [2048, 1024, 512, 256, 128]},            # 2,1
+        }
+        #{"shared_layers" : [256, 128, 64, 32],"dense_layers" : [2048, 1024, 512, 256, 128]},            # 2,1
         #{"shared_layers" : [100,60,20],"dense_layers" : [500, 250, 100, 50]},        # 3,1
         #{"shared_layers" : [200,100,60,20],"dense_layers" : [100]},    # 4,1
         #{"shared_layers" : [100,60,20],"dense_layers" : [150,75]},     # 3,2
-        {"shared_layers" : [200,100,60,20],"dense_layers" : [256, 128, 64]} # 4,2
+        #{"shared_layers" : [200,100,60,20],"dense_layers" : [256, 128, 64]} # 4,2
         #{"shared_layers": [200, 100, 40],"dense_layers": [300, 150, 75]}  # 3,3
-    ][i]
+    ][i%2]
 
     np.random.seed()
 
@@ -67,10 +52,10 @@ def generate_random_config(default_config, i):
     # choose optimitzer
     #new_conf["optimizer"] = "Adam"  # np.random.choice(["Adam","SGD"])
     new_conf["training"][
-        "lr"] = secrets.choice([0.005, 0.002, 0.001, 0.0005, 0.0001, 0.00005,0.00001])
+        "lr"] = [0.0005, 0.00003, 0.00004, 0.00005, 0.00006, 0.00007][i%2]
     #new_conf["training"]["lr"] = {"lr": 10**np.random.uniform(-1, -5)}
 
-    #new_conf["validation_epoch_size"] = 3
+    new_conf["validation_epoch_size"] = 3
 
     #new_conf["use_gpu"] = "true"  # if available
 
@@ -119,4 +104,4 @@ def run_experiments(experiment_name, n):
 
 
 if __name__ == "__main__":
-    run_experiments('third_exp', 8)
+    run_experiments('fourth_exp', 6)
