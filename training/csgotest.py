@@ -331,8 +331,8 @@ def train_csgo(dataset_config_path: Path,
 
             batch_loss_all_player = binary_classification_loss(output, y)
 
+            batch_loss_all_player.backward()
             #batch_loss_target_player.backward()
-            batch_loss_target_player.backward()
             optimizer.step()
 
             # Log loss

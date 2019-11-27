@@ -11,6 +11,8 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 from torch.utils.data.dataset import Dataset
 from torch.utils.tensorboard import SummaryWriter
+from sklearn.metrics import (average_precision_score, precision_recall_curve,
+                             roc_auc_score, roc_curve)
 
 import sys
 import os
@@ -27,7 +29,7 @@ import csgotest
 import models
 import prepare_dataset
 
-PATH_RESULTS = Path('results')
+PATH_RESULTS = Path('test_results')
 CONFIG_PATH = Path('config')
 
 #TRAIN_CONFIG_PATH = Path('config' / 'train_config.json')
@@ -60,11 +62,6 @@ class CounterStrikeTestset(Dataset):
             testset_sample.columns)
 
     def __getitem__(self, index):
-        '''
-        match_file = self.testset_files[index]
-        match_df = data_loader.load_feather_as_df(
-            match_file, False, column_names=self.all_column_names)
-        '''
         match_df = self.testset_files
 
         player_features, classification_labels = data_loader.split_data_into_minibatch(
@@ -77,12 +74,15 @@ class CounterStrikeTestset(Dataset):
         return len([self.testset_files])
 
 
-def test_on_match(run_name: str, match_path, train_config_path):
+def test_on_match(run_name: str, epoch: int, match_path, train_config_path):
     '''
         run_name --> Name of the run the model was trained with
     '''
 
     print("Start testing process...")
+
+    if (not Path.exists(PATH_RESULTS / run_name)):
+        os.mkdir(str(PATH_RESULTS / run_name))
 
     #log_every_num_batches = 250 - (50 * min((4, args.verbose)))
 
@@ -100,160 +100,81 @@ def test_on_match(run_name: str, match_path, train_config_path):
     labels_column_names = data_loader.get_die_within_seconds_column_names()
     all_column_names = features_column_names + labels_column_names
 
-    df = data_loader.load_feather_as_df(match_path,
-                                        False,
-                                        column_names=all_column_names +
-                                        ['Tick', 'Time', 'Round'])
+    testfiles = data_loader.get_files_in_directory(
+        Path(DATASET_CONFIG["paths"]["test_files_path"]), 'inferno.feather')
 
-    num_all_player_features = data_loader.get_num_player_features(df.columns)
+    writer = SummaryWriter(str(Path(PATH_RESULTS / run_name)))
+    #writer.add_hparams({"test_set": "dummy_value"}, {})
+    num_all_player_features = len(
+        data_loader.get_column_names_from_features_set(
+            train_config["training"]["feature_set"]))
 
     model = data_loader.load_model_to_test(
-        epoch_i=100,
+        epoch_i=epoch,
         model_full_name=run_name,
         num_all_player_features=num_all_player_features)
 
     model.to(device)
     print("Model loaded")
 
+    #criterion = nn.CrossEntropyLoss()
+    #binary_classification_loss = torch.nn.BCELoss()
     print("Creating tensorboard summary writer")
 
-    writer = SummaryWriter(str(Path(PATH_RESULTS / run_name)))
-    #writer.add_hparams({"test_set": "dummy_value"}, {})
+    all_output_np = []
+    all_pred_np = []
+    all_match_indices = []
 
-    #criterion = nn.CrossEntropyLoss()
-    binary_classification_loss = torch.nn.BCELoss()
+    for match_id in range(len(testfiles)):
 
-    all_test_losses = []
-    all_test_accuracies = []
-    all_test_target_accuracies = []
-    all_test_die_notdie_accuracies = []
-    all_test_per_sec_accuracies = [[] for _ in range(20)]
-    all_test_per_sec_predictions = [[] for _ in range(20)]
-    all_test_per_sec_predictions_std = [[] for _ in range(20)]
+        df = data_loader.load_feather_as_df(testfiles[match_id],
+                                            False,
+                                            column_names=all_column_names +
+                                            ['Tick', 'Time', 'Round'])
 
-    all_validation_losses = []
-    all_validation_accuracies = []
+        #LOAD THE MATCH DATA
 
-    all_validation_roc_scores = []
-    all_validation_pr_scores = []
+        all_X, all_y = data_loader.split_data_into_minibatch(df)
+        match_indecies = np.array(df.index.values)
 
-    now = time.time()
+        #Input and labels from match
+        all_X = torch.from_numpy(np.array(all_X)).to(device)
+        all_y = torch.from_numpy(np.array(all_y)).to(device)
 
-    #epoch_per_sec_accuracies = [[] for _ in range(20)]
-    #epoch_per_sec_predictions = [[] for _ in range(20)]
+        output = model(all_X)
+        #TODO: Maybe nn.BCEWithLogitsLoss?
+        output = torch.sigmoid(output)
+        all_y_np = all_y.cpu().detach().numpy()
+        output_np = output.cpu().detach().numpy()
 
-    #My acc tracking
-    epoch_loss_all_player = []
+        print(average_precision_score(all_y_np, output_np))
 
-    epoch_accuracy_all_player = []
+        match_indices_np = match_indecies
 
-    epoch_accuracy_die = []
-    epoch_accuracy_not_die = []
+        all_pred_np.append(all_y_np)
+        all_output_np.append(output_np)
+        all_match_indices.append(match_indices_np)
 
-    #LOAD THE MATCH DATA
+        writer.add_pr_curve(f'Testing/{run_name}/PR_Curve',
+                            output_np.flatten(), all_y_np.flatten(), match_id)
+        sys.stdout.flush()
 
-    all_X, all_y = data_loader.split_data_into_minibatch(df)
-    match_indecies = np.array(df.index.values)
+        print(
+            f"Testing on match {Path(testfiles[match_id]).name} with model {run_name}_{epoch} and config {train_config_path} finished"
+        )
 
-    #Input and labels from match
-    all_X = torch.from_numpy(np.array(all_X)).to(device)
-    all_y = torch.from_numpy(np.array(all_y)).to(device)
-
-    output = model(all_X)
-    #TODO: Maybe nn.BCEWithLogitsLoss?
-    output = torch.sigmoid(output)
-    all_y_np = all_y.cpu().detach().numpy()
-    output_np = output.cpu().detach().numpy()
-
-    batch_loss_all_player = binary_classification_loss(
-        output, all_y).cpu().detach().numpy().astype(np.float32)
-    epoch_loss_all_player.append(batch_loss_all_player)
-
-    #
-    '''
-        NOTE: Log accuracy values 
-    '''
-
-    # Acc values for all players and for targeted player
-    batch_accuracy_all_player = ((output > 0.5) == (
-        all_y > 0.5)).cpu().numpy().astype(np.float32)
-
-    batch_accuracy_all_player_mean = batch_accuracy_all_player.mean()
-
-    # Accuracy for predicting deaths correctly and survival
-    batch_accuracy_die = ((output > 0.5) == (all_y > 0.5)).view(-1)[
-        all_y.view(-1) > 0.5].cpu().numpy().reshape(-1).astype(np.float32)
-    batch_accuracy_not_die = ((output > 0.5) == (all_y > 0.5)).view(-1)[
-        all_y.view(-1) < 0.5].cpu().numpy().reshape(-1).astype(np.float32)
-
-    epoch_accuracy_all_player.append(batch_accuracy_all_player_mean
-                                     )  # Add mean accuracy to epoch accuracies
-
-    #Save result for later analyzation
-
-    match_path = Path(match_path)
-
-    match_indices_np = match_indecies.cpu().detach().numpy()
-
-    np.save(
-        f'results/{run_name}/{match_path.with_suffix("").name}_match_indecies.npy',
-        match_indices_np)
-    np.save(
-        f'results/{run_name}/{match_path.with_suffix("").name}_predictions_and_labels.npy',
-        np.array([output_np, all_y_np]))
-    np.save(
-        f'results/{run_name}/{match_path.with_suffix("").name}_die_not_die_acc.npy',
-        np.array([batch_accuracy_die, batch_accuracy_not_die]))
-    '''np.save(
-        f'results/{run_name}/{match_path.with_suffix("")}_accuracy.npy',
-        np.array([
-            epoch_accuracy_all_player,
-            match_indecies.cpu().detach().numpy()
-        ]))'''
-
-    writer.add_pr_curve(f'Testing/{match_path.with_suffix("").name}/PR_Curve',
-                        output_np.flatten(), all_y_np.flatten(), 0)
-    '''
-    writer.add_scalars(
-        "Training/Loss", {
-            'Loss all players': np.array(epoch_loss_all_player).mean(),
-            'Loss target player':
-            np.array(epoch_loss_target_player).mean()
-        }, epoch_i)
-
-    writer.add_scalars(
-        "Training/Accuracy", {
-            "Accuracy all players":
-            np.array(epoch_accuracy_all_player).mean(),
-            "Accuracy target player":
-            np.array(epoch_accuracy_target_player).mean()
-        }, epoch_i)
-
-    writer.add_scalars(
-        "Training/Die and not die accuracy", {
-            "Accuracy for Death":
-            np.array(epoch_accuracy_die).mean(),
-            "Accuracy for Survival (not die)":
-            np.array(epoch_accuracy_not_die).mean()
-        }, epoch_i)
-    '''
-    '''
-    all_test_losses.append(np.array(epoch_loss_all_player).mean())
-    all_test_accuracies.append(np.array(epoch_accuracy_all_player).mean())
-    all_test_target_accuracies.append(
-        np.array(epoch_accuracy_target_player).mean())
-    all_test_die_notdie_accuracies.append(
-        (np.array(epoch_accuracy_die).mean(),
-            np.array(epoch_accuracy_not_die).mean()))
-    '''
-
-    sys.stdout.flush()
+    np.save(f'{str(PATH_RESULTS / run_name)}_predictions_and_labels.npy',
+            np.array([np.array(all_output_np),
+                      np.array(all_pred_np)]))
+    np.save(f'{str(PATH_RESULTS / run_name)}_match_indecies.npy',
+            np.array(all_match_indices))
 
     writer.close()
+    print("Finished on all matches")
 
 
 if __name__ == '__main__':
     test_on_match(
-        'first_exp_0',
-        '/home/hueter/csgo_dataset/processed_files/astralis-vs-cloud9-nuke.feather',
-        'config/first_exp/train_config_first_exp_0.json')
+        'big_data_8', 41,
+        '/home/hueter/csgo_dataset/test_data/astralis-vs-cloud9-inferno.feather',
+        'config/third_exp/train_config_third_exp_4.json')

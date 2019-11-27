@@ -1,8 +1,8 @@
 {
   "paths": {
-    "demo_files_path": "../../csgo_dataset/demo_files_49996/",
-    "parsed_files_path": "../../csgo_dataset/parsed_files/",
-    "processed_files_path": "../../csgo_dataset/processed_files/",
+    "demo_files_path": "../../csgo_dataset/demo_files_test/",
+    "parsed_files_path": "../../csgo_dataset/parsed_files_test/",
+    "processed_files_path": "../../csgo_dataset/processed_files_test/",
     "training_files_path": "../../csgo_dataset/training_data/",
     "test_files_path": "../../csgo_dataset/test_data/"
   },
